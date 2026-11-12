@@ -15,8 +15,14 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - name: Check out source
+      - name: Check out Windows port
         uses: actions/checkout@v4
+
+      - name: Check out original MySpoti modules
+        uses: actions/checkout@v4
+        with:
+          repository: kota-zo/Orpheon
+          path: upstream
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
