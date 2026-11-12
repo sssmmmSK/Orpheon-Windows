@@ -1,6 +1,6 @@
 {
   "name": "orpheon-windows",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "private": true,
   "description": "A Windows desktop companion for Orpheon, built as an independent desktop port.",
   "main": "dist-electron/main.js",
