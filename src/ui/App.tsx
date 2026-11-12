@@ -1,66 +1,63 @@
-import { useState } from "react";
-import {
-  Home, Search, Library, ListMusic, Heart, Clock3, Plus,
-  ChevronLeft, ChevronRight, MoreHorizontal, Play, Pause,
-  SkipBack, SkipForward, Shuffle, Repeat2, Volume2, MonitorSpeaker,
-  Download, Settings, Disc3, Radio, Headphones, LogIn
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Disc3, Search, Library, Heart, Clock3, Plus, Home, Settings, Download, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat2, Volume2, MonitorSpeaker, LogIn, Radio, ExternalLink } from "lucide-react";
 
-const tracks = [
-  { title: "Midnight City", artist: "M83", album: "Hurry Up, We're Dreaming", time: "4:03", color: "violet" },
-  { title: "After Dark", artist: "Mr.Kitty", album: "Time", time: "4:04", color: "blue" },
-  { title: "The Perfect Girl", artist: "Mareux", album: "The Perfect Girl", time: "3:14", color: "pink" },
-  { title: "Resonance", artist: "HOME", album: "Odyssey", time: "3:32", color: "amber" },
-  { title: "A Real Hero", artist: "College & Electric Youth", album: "A Real Hero", time: "4:27", color: "green" }
-];
+type Track = { name?: string; artists?: { name: string }[]; album?: { name: string } | null; image?: string | null; durationMs?: number | null; uri?: string; kind?: string };
+type PlayerState = { track?: Track | null; isPaused?: boolean; isBuffering?: boolean; positionMs?: number; durationMs?: number; shuffle?: boolean; repeat?: number };
+declare global { interface Window { orpheonDesktop?: { platform: string; version: string; launchSpotify: () => Promise<{opened:boolean}>; command: (method:string,args?:Record<string,unknown>)=>Promise<any>; onStatus:(cb:(v:any)=>void)=>()=>void; onState:(cb:(v:PlayerState)=>void)=>()=>void; }; } }
+
+const fmt=(ms?:number|null)=>{if(!ms||!Number.isFinite(ms))return "0:00";const s=Math.floor(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 
 export default function App() {
-  const [active, setActive] = useState("Главная");
-  const [playing] = useState(false);
-  const [query, setQuery] = useState("");
+  const [status,setStatus]=useState("Spotify не подключён");
+  const [connected,setConnected]=useState(false);
+  const [ready,setReady]=useState(false);
+  const [player,setPlayer]=useState<PlayerState>({});
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState("");
+  const [query,setQuery]=useState("");
+
+  useEffect(()=>{
+    const offStatus=window.orpheonDesktop?.onStatus(v=>{setConnected(!!v.connected);setReady(!!v.ready);setStatus(v.message||"");});
+    const offState=window.orpheonDesktop?.onState(v=>setPlayer(v));
+    return ()=>{offStatus?.();offState?.();};
+  },[]);
+
+  const command=async(method:string,args?:Record<string,unknown>)=>{
+    try{setError("");await window.orpheonDesktop?.command(method,args);}
+    catch(e){setError(e instanceof Error?e.message:String(e));}
+  };
+  const connect=async()=>{
+    setBusy(true);setError("");
+    try{await window.orpheonDesktop?.launchSpotify();setStatus("Открылся браузер. Войди в Spotify — можно использовать бесплатный аккаунт.");}
+    catch(e){setError(e instanceof Error?e.message:String(e));}
+    finally{setBusy(false);}
+  };
+  const track=player.track;
+  const artist=track?.artists?.map(a=>a.name).join(", ")||"";
+  const pct=player.durationMs?Math.min(100,Math.max(0,(player.positionMs||0)/player.durationMs*100)):0;
 
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Disc3 size={22}/></div><span>orpheon<span className="brand-sub">WINDOWS</span></span></div>
-      <div className="nav-group">
-        <button className={active === "Главная" ? "nav active" : "nav"} onClick={() => setActive("Главная")}><Home/>Главная</button>
-        <button className={active === "Поиск" ? "nav active" : "nav"} onClick={() => setActive("Поиск")}><Search/>Поиск</button>
-        <button className={active === "Медиатека" ? "nav active" : "nav"} onClick={() => setActive("Медиатека")}><Library/>Медиатека</button>
-      </div>
-      <div className="library-head"><span>ТВОЯ КОЛЛЕКЦИЯ</span><button className="icon-btn"><Plus size={17}/></button></div>
-      <button className="nav"><Heart/>Любимые треки</button>
-      <button className="nav"><Clock3/>Недавно прослушано</button>
-      <button className="nav"><ListMusic/>Плейлисты</button>
-      <div className="sidebar-bottom">
-        <div className="connection"><span className="status-dot"/>ДЕМО-ИНТЕРФЕЙС<span>v0.1</span></div>
-        <button className="nav"><Download/>Загрузки</button>
-        <button className="nav"><Settings/>Настройки</button>
-      </div>
+      <div className="nav-group"><button className="nav active"><Home/>Главная</button><button className="nav" onClick={()=>document.querySelector<HTMLInputElement>(".search-wrap input")?.focus()}><Search/>Поиск</button><button className="nav"><Library/>Медиатека</button></div>
+      <div className="library-head"><span>ТВОЯ КОЛЛЕКЦИЯ</span><button className="icon-btn" title="Добавить"><Plus size={17}/></button></div>
+      <button className="nav"><Heart/>Любимые треки</button><button className="nav"><Clock3/>Недавно прослушано</button>
+      <div className="sidebar-bottom"><div className="connection"><span className="status-dot" style={{background:ready?"#d6ff6b":connected?"#e6b85c":"#686a72"}}/>{ready?"ПЛЕЕР ГОТОВ":connected?"БРАУЗЕР ПОДКЛЮЧЁН":"НЕТ ПОДКЛЮЧЕНИЯ"}<span>v0.2</span></div><button className="nav"><Download/>Загрузки</button><button className="nav"><Settings/>Настройки</button></div>
     </aside>
     <main className="main-panel">
-      <header className="topbar">
-        <div className="history"><button className="icon-btn"><ChevronLeft/></button><button className="icon-btn"><ChevronRight/></button></div>
-        <div className="search-wrap"><Search size={17}/><input value={query} onChange={e => {setQuery(e.target.value); setActive("Поиск");}} placeholder="Что хочешь послушать?"/></div>
-        <button className="login-btn" onClick={() => { void (window.orpheonDesktop?.openSpotify() ?? Promise.resolve({ opened: false })); }}><LogIn size={16}/>Запустить Spotify</button>
-      </header>
+      <header className="topbar"><div className="search-wrap"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск пока доступен в Spotify"/></div><button className="login-btn" onClick={connect} disabled={busy}><LogIn size={16}/>{busy?"Подключение…":"Подключить Spotify"}<ExternalLink size={13}/></button></header>
       <section className="content">
-        <div className="greeting"><div><div className="eyebrow">ТВОЯ МУЗЫКА · ТВОЁ ПРОСТРАНСТВО</div><h1>{active === "Поиск" ? "Поиск музыки" : active === "Медиатека" ? "Твоя медиатека" : "С возвращением."}</h1><p>Тёмный режим. Чистый звук. Ничего лишнего.</p></div><div className="hero-orb"><Disc3 size={76} strokeWidth={1}/></div></div>
-        <div className="section-title"><div><span className="eyebrow">ПОДБОРКА</span><h2>{query ? "Результаты поиска" : "Треки для настроения"}</h2></div><button className="text-btn">Показать всё <ChevronRight size={15}/></button></div>
-        <div className="track-table">
-          <div className="track-header"><span>#</span><span>НАЗВАНИЕ</span><span>АЛЬБОМ</span><span><Clock3 size={15}/></span></div>
-          {tracks.filter(t => !query || (t.title + t.artist + t.album).toLowerCase().includes(query.toLowerCase())).map((track, i) => <div className="track-row" key={track.title}>
-            <span className="track-number">{String(i + 1).padStart(2, "0")}</span>
-            <div className="track-name"><div className={"cover " + track.color}><Disc3 size={20}/></div><div><strong>{track.title}</strong><small>{track.artist}</small></div></div>
-            <span className="album-name">{track.album}</span><span className="track-time">{track.time}</span>
-          </div>)}
-        </div>
-        <div className="notice"><Radio size={18}/><div><strong>Подключение Spotify</strong><span>Нажми «Запустить Spotify», чтобы открыть отдельное окно сервиса. Вход выполняй только на официальной странице Spotify. Список треков выше пока демонстрационный; управление воспроизведением и синхронизация библиотеки ещё разрабатываются.</span></div></div>
+        <div className="greeting"><div><div className="eyebrow">ТВОЯ МУЗЫКА · ТВОЁ ПРОСТРАНСТВО</div><h1>{track?.name||"С возвращением."}</h1><p>{track?artist:"Подключи Spotify, чтобы начать слушать."}</p></div><div className="hero-orb"><Disc3 size={76} strokeWidth={1}/></div></div>
+        <div className="section-title"><div><span className="eyebrow">СОСТОЯНИЕ ПОДКЛЮЧЕНИЯ</span><h2>{status}</h2></div></div>
+        <div className="notice"><Radio size={18}/><div><strong>{ready?"Управление плеером активно":"Официальный Spotify Web Player"}</strong><span>{ready?"Управляй воспроизведением здесь. Сам Spotify работает в отдельном окне Edge или Chrome.":"Нажми «Подключить Spotify». Откроется Edge или Chrome с отдельным профилем Orpheon. Войди на официальном сайте Spotify. Поддерживается бесплатный аккаунт; реклама Spotify остаётся."}</span></div></div>
+        {error&&<div className="error-notice">{error}</div>}
+        {query&&<div className="hint">Поиск по каталогу будет добавлен после проверки управления плеером. Сейчас используй поиск в окне Spotify.</div>}
       </section>
     </main>
     <footer className="player">
-      <div className="now-playing"><div className="cover violet"><Disc3 size={20}/></div><div><strong>Ничего не играет</strong><small>Подключение Spotify ещё не настроено</small></div><button className="icon-btn"><Heart size={17}/></button></div>
-      <div className="transport"><div className="controls"><button className="icon-btn"><Shuffle size={17}/></button><button className="icon-btn"><SkipBack size={19}/></button><button className="play-btn" title="Управление воспроизведением появится после интеграции плеера" disabled><Play size={19} fill="currentColor"/></button><button className="icon-btn"><SkipForward size={19}/></button><button className="icon-btn"><Repeat2 size={17}/></button></div><div className="progress"><span>0:00</span><div className="progress-line"><i/></div><span>0:00</span></div></div>
-      <div className="player-extra"><button className="icon-btn"><MonitorSpeaker size={17}/></button><button className="icon-btn"><Volume2 size={18}/></button><div className="volume-line"><i/></div><button className="icon-btn"><MoreHorizontal size={19}/></button></div>
+      <div className="now-playing">{track?.image?<img className="cover-img" src={track.image}/>:<div className="cover violet"><Disc3 size={20}/></div>}<div className="track-meta"><strong>{track?.name||"Ничего не играет"}</strong><small>{artist||"Подключи Spotify"}</small></div><button className="icon-btn" title="Добавить в медиатеку" disabled={!ready||!track?.uri} onClick={()=>track?.uri&&command("library.add",{uris:[track.uri]})}><Heart size={17}/></button></div>
+      <div className="transport"><div className="controls"><button className="icon-btn" title="Перемешать" disabled={!ready} onClick={()=>command("player.setShuffle",{on:!player.shuffle})}><Shuffle size={17}/></button><button className="icon-btn" title="Предыдущий трек" disabled={!ready} onClick={()=>command("player.previous")}><SkipBack size={19}/></button><button className="play-btn" title="Воспроизвести / пауза" disabled={!ready} onClick={()=>command(player.isPaused?"player.resume":"player.pause")} >{player.isPaused?<Play size={19} fill="currentColor"/>:<Pause size={19} fill="currentColor"/>}</button><button className="icon-btn" title="Следующий трек" disabled={!ready} onClick={()=>command("player.next")}><SkipForward size={19}/></button><button className="icon-btn" title="Повтор" disabled={!ready} onClick={()=>command("player.setRepeat",{mode:((player.repeat||0)+1)%3})}><Repeat2 size={17}/></button></div><div className="progress"><span>{fmt(player.positionMs)}</span><div className="progress-line" onClick={e=>{if(!ready||!player.durationMs)return;const r=e.currentTarget.getBoundingClientRect();void command("player.seek",{positionMs:Math.round((e.clientX-r.left)/r.width*player.durationMs)});}}><i style={{width:pct+"%"}}/></div><span>{fmt(player.durationMs)}</span></div></div>
+      <div className="player-extra"><button className="icon-btn" title="Устройство вывода"><MonitorSpeaker size={17}/></button><button className="icon-btn" title="Громкость"><Volume2 size={18}/></button><div className="volume-line"><i style={{width:"70%"}}/></div></div>
     </footer>
   </div>;
 }
