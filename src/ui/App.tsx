@@ -3,7 +3,7 @@ import { Disc3, Search, Library, Heart, Clock3, Plus, Home, Settings, Download, 
 
 type Track = { name?: string; artists?: { name: string }[]; album?: { name: string } | null; image?: string | null; durationMs?: number | null; uri?: string; kind?: string };
 type PlayerState = { track?: Track | null; isPaused?: boolean; isBuffering?: boolean; positionMs?: number; durationMs?: number; shuffle?: boolean; repeat?: number };
-declare global { interface Window { orpheonDesktop?: { platform: string; version: string; launchSpotify: () => Promise<{opened:boolean}>; command: (method:string,args?:Record<string,unknown>)=>Promise<any>; onStatus:(cb:(v:any)=>void)=>()=>void; onState:(cb:(v:PlayerState|null)=>void)=>()=>void; }; } }
+declare global { interface Window { orpheonDesktop?: { platform: string; version: string; launchSpotify: () => Promise<{opened:boolean}>; showSpotifyLogin: () => Promise<{opened:boolean}>; command: (method:string,args?:Record<string,unknown>)=>Promise<any>; onStatus:(cb:(v:any)=>void)=>()=>void; onState:(cb:(v:PlayerState|null)=>void)=>()=>void; }; } }
 
 const fmt=(ms?:number|null)=>{if(!ms||!Number.isFinite(ms))return "0:00";const s=Math.floor(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 
@@ -70,7 +70,7 @@ export default function App() {
   };
   const connect=async()=>{
     setBusy(true);setError("");
-    try{await window.orpheonDesktop?.launchSpotify();setStatus("Открылся браузер. Войди в Spotify — можно использовать бесплатный аккаунт.");}
+    try{if(ready)await window.orpheonDesktop?.showSpotifyLogin();else await window.orpheonDesktop?.launchSpotify();setStatus("Войди в Spotify прямо в окне Orpheon. После входа вернёшься к интерфейсу приложения.");}
     catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   };
@@ -84,14 +84,14 @@ export default function App() {
       <div className="nav-group"><button className={"nav "+(page==="home"?"active":"")} onClick={()=>setPage("home")}><Home/>Главная</button><button className="nav" onClick={()=>document.querySelector<HTMLInputElement>(".search-wrap input")?.focus()}><Search/>Поиск</button><button className={"nav "+(page==="library"?"active":"")} onClick={()=>setPage("library")}><Library/>Медиатека</button></div>
       <div className="library-head"><span>ТВОЯ КОЛЛЕКЦИЯ</span><button className="icon-btn" title="Добавить"><Plus size={17}/></button></div>
       <button className="nav" onClick={()=>setPage("library")}><Heart/>Любимые треки</button><button className="nav" onClick={()=>setPage("library")}><Clock3/>Недавно прослушано</button>
-      <div className="sidebar-bottom"><div className="connection"><span className="status-dot" style={{background:ready?"#d6ff6b":connected?"#e6b85c":"#686a72"}}/>{ready?"ПЛЕЕР ГОТОВ":connected?"БРАУЗЕР ПОДКЛЮЧЁН":"НЕТ ПОДКЛЮЧЕНИЯ"}<span>v0.2.4</span></div><button className="nav"><Download/>Загрузки</button><button className="nav"><Settings/>Настройки</button></div>
+      <div className="sidebar-bottom"><div className="connection"><span className="status-dot" style={{background:ready?"#d6ff6b":connected?"#e6b85c":"#686a72"}}/>{ready?"ПЛЕЕР ГОТОВ":connected?"ВСТРОЕННЫЙ ПЛЕЕР":"НЕТ ПОДКЛЮЧЕНИЯ"}<span>v0.2.4</span></div><button className="nav"><Download/>Загрузки</button><button className="nav"><Settings/>Настройки</button></div>
     </aside>
     <main className="main-panel">
-      <header className="topbar"><div className="search-wrap"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск пока доступен в Spotify"/></div><button className="login-btn" onClick={connect} disabled={busy}><LogIn size={16}/>{busy?"Подключение…":"Подключить Spotify"}<ExternalLink size={13}/></button></header>
+      <header className="topbar"><div className="search-wrap"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск по Spotify (скоро)"/></div><button className="login-btn" onClick={connect} disabled={busy}><LogIn size={16}/>{busy?"Подключение…":ready?"Сменить аккаунт":"Войти через Spotify"}</button></header>
       <section className="content">
         {page==="home"?<><div className="greeting"><div><div className="eyebrow">ТВОЯ МУЗЫКА · ТВОЁ ПРОСТРАНСТВО</div><h1>{track?.name||"С возвращением."}</h1><p>{track?artist:"Подключи Spotify, чтобы начать слушать."}</p></div><div className="hero-orb"><Disc3 size={76} strokeWidth={1}/></div></div>
         <div className="section-title"><div><span className="eyebrow">СОСТОЯНИЕ ПОДКЛЮЧЕНИЯ</span><h2>{status}</h2></div></div>
-        <div className="notice"><Radio size={18}/><div><strong>{ready?"Управление плеером активно":"Официальный Spotify Web Player"}</strong><span>{ready?"Управляй воспроизведением здесь. Сам Spotify работает в отдельном окне Edge или Chrome.":"Нажми «Подключить Spotify». Откроется Edge или Chrome с отдельным профилем Orpheon. Войди на официальном сайте Spotify. Поддерживается бесплатный аккаунт; реклама Spotify остаётся."}</span></div></div>
+        <div className="notice"><Radio size={18}/><div><strong>{ready?"Управление плеером активно":"Официальный Spotify Web Player"}</strong><span>{ready?"Воспроизведение и управление работают внутри Orpheon. Отдельное окно браузера не используется.":"Нажми «Войти через Spotify». Страница авторизации откроется внутри Orpheon; после входа вернёшься к интерфейсу приложения. Поддерживается бесплатный аккаунт; реклама Spotify остаётся."}</span></div></div>
         {error&&<div className="error-notice">{error}</div>}
         {query&&<div className="hint">Поиск по каталогу будет добавлен после проверки управления плеером. Сейчас используй поиск в окне Spotify.</div>}
       </>:<><div className="section-title"><div><span className="eyebrow">ТВОЯ КОЛЛЕКЦИЯ</span><h2>Медиатека Spotify</h2></div></div><div className="notice"><Library size={18}/><div><strong>Подключение к медиатеке</strong><span>Добавление и удаление текущего трека уже выполняется через аккаунт Spotify. Полный список сохранённых треков и плейлистов требует отдельного подключения к API медиатеки — сейчас я проверяю совместимость методов Spotify Web Player.</span></div></div>{track&&<div className="track-row" style={{marginTop:18}}><span>Сейчас</span><div className="track-name">{track.image?<img className="cover-img" src={track.image}/>:<div className="cover violet"><Disc3 size={20}/></div>}<div><strong>{track.name}</strong><small>{artist}</small></div></div><span/><button className="icon-btn" title={liked?"Удалить из медиатеки":"Добавить в медиатеку"} onClick={toggleLike}><Heart size={17} fill={liked?"currentColor":"none"}/></button></div>}</>}
