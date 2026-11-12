@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "2.4.21"
-    id("org.jetbrains.compose") version "1.12.2"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.4.21"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.kotlin.compose)
 }
 
 group = "app.myspoti"
@@ -15,6 +15,13 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
+
+    // Reuse the real MySpoti Kotlin API and Spotify implementation from upstream.
+    implementation(project(":api"))
+    implementation(project(":api-spotify"))
+    implementation(project(":host-cdp"))
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.swing)
 }
 
 compose.desktop {
