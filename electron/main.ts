@@ -150,14 +150,9 @@ function createWindow() {
     logDiagnostic("render-process-gone", details);
     showRendererFailure(`Renderer crashed: ${JSON.stringify(details)}`);
   });
-  mainWindow.webContents.on("console-message", (_event, details) => {
-    if (details.level >= 2) {
-      logDiagnostic("renderer-console", {
-        level: details.level,
-        message: details.message,
-        line: details.lineNumber,
-        source: details.sourceId
-      });
+  mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    if (level >= 2) {
+      logDiagnostic("renderer-console", { level, message, line, source: sourceId });
     }
   });
   mainWindow.webContents.on("preload-error", (_event, preloadPath, error) => {
