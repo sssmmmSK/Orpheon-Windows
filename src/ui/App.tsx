@@ -47,7 +47,7 @@ export default function App() {
       <div className="nav-group"><button className="nav active"><Home/>Главная</button><button className="nav" onClick={()=>document.querySelector<HTMLInputElement>(".search-wrap input")?.focus()}><Search/>Поиск</button><button className="nav"><Library/>Медиатека</button></div>
       <div className="library-head"><span>ТВОЯ КОЛЛЕКЦИЯ</span><button className="icon-btn" title="Добавить"><Plus size={17}/></button></div>
       <button className="nav"><Heart/>Любимые треки</button><button className="nav"><Clock3/>Недавно прослушано</button>
-      <div className="sidebar-bottom"><div className="connection"><span className="status-dot" style={{background:ready?"#d6ff6b":connected?"#e6b85c":"#686a72"}}/>{ready?"ПЛЕЕР ГОТОВ":connected?"БРАУЗЕР ПОДКЛЮЧЁН":"НЕТ ПОДКЛЮЧЕНИЯ"}<span>v0.2.1</span></div><button className="nav"><Download/>Загрузки</button><button className="nav"><Settings/>Настройки</button></div>
+      <div className="sidebar-bottom"><div className="connection"><span className="status-dot" style={{background:ready?"#d6ff6b":connected?"#e6b85c":"#686a72"}}/>{ready?"ПЛЕЕР ГОТОВ":connected?"БРАУЗЕР ПОДКЛЮЧЁН":"НЕТ ПОДКЛЮЧЕНИЯ"}<span>v0.2.2</span></div><button className="nav"><Download/>Загрузки</button><button className="nav"><Settings/>Настройки</button></div>
     </aside>
     <main className="main-panel">
       <header className="topbar"><div className="search-wrap"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск пока доступен в Spotify"/></div><button className="login-btn" onClick={connect} disabled={busy}><LogIn size={16}/>{busy?"Подключение…":"Подключить Spotify"}<ExternalLink size={13}/></button></header>
