@@ -84,7 +84,7 @@ async function launchSpotifyBrowser() {
     if (!spotify) {
       const bridgePath = path.join(app.getAppPath(), "electron", "player-bridge.js");
       spotify = new SpotifyCdp(fs.readFileSync(bridgePath, "utf8"));
-      spotify.on("status", status => send("spotify:status", status));
+      spotify.on("status", status => {\n        if (status.connected === false) launchPromise = null;\n        send("spotify:status", status);\n      });
       spotify.on("bridge", message => {
         if (message.type === "state") send("spotify:state", message.state);
         else if (message.type === "queue") send("spotify:queue", message.queue);
