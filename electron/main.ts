@@ -100,9 +100,18 @@ async function launchSpotifyBrowser() {
     }
   });
 
-  await spotify.connect();
-  await spotifyView.webContents.loadURL("https://open.spotify.com/");
-  send("spotify:status", { connected: true, ready: false, message: "Войдите в Spotify в окне Orpheon" });
+  // Do not wait for Spotify's network load or CDP handshake here: either can remain
+  // pending on restricted networks and leave the renderer's login button stuck at
+  // "Подключение…". Show the embedded page immediately and report async failures.
+  send("spotify:status", { connected: true, ready: false, message: "Загружаю Spotify внутри Orpheon…" });
+  void spotify.connect().catch(error => {
+    logDiagnostic("spotify-cdp-connect-error", String(error));
+    send("spotify:status", { connected: false, ready: false, message: "Не удалось подключить управление Spotify: " + String(error) });
+  });
+  void spotifyView.webContents.loadURL("https://open.spotify.com/").catch(error => {
+    logDiagnostic("spotify-load-url-error", String(error));
+    send("spotify:status", { connected: false, ready: false, message: "Не удалось открыть Spotify: " + String(error) });
+  });
 }
 
 
