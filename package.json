@@ -1,6 +1,6 @@
 {
   "name": "orpheon-windows",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "A Windows desktop companion for Orpheon, built as an independent desktop port.",
   "main": "dist-electron/main.js",
@@ -15,7 +15,8 @@
   "dependencies": {
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -27,7 +28,8 @@
     "electron-builder": "^25.1.8",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
-    "wait-on": "^8.0.1"
+    "wait-on": "^8.0.1",
+    "@types/ws": "^8.5.13"
   },
   "build": {
     "appId": "com.sssmmm.orpheonwindows",
@@ -38,6 +40,8 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
+      "electron/player-bridge.js",
+      "LICENSE",
       "package.json"
     ],
     "win": {
