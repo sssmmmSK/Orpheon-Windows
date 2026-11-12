@@ -61,6 +61,8 @@ async function launchSpotifyBrowser() {
         else if (message.type === "queue") send("spotify:queue", message.queue);
         else if (message.type === "ready") send("spotify:status", { connected: true, ready: true, message: "Плеер Spotify готов" });
         else if (message.type === "error") send("spotify:status", { connected: true, ready: false, message: message.error });
+        else if (message.type === "jserror") logDiagnostic("spotify-page-error", message);
+        else if (message.type === "net") logDiagnostic("spotify-network", message);
       });
     }
     await spotify.connect();
