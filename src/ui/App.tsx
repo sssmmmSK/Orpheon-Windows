@@ -17,7 +17,12 @@ export default function App() {
   const [query,setQuery]=useState("");
 
   useEffect(()=>{
-    const offStatus=window.orpheonDesktop?.onStatus(v=>{setConnected(!!v.connected);setReady(!!v.ready);setStatus(v.message||"");});
+    if (!window.orpheonDesktop) {
+      setError("Не найден мост Electron (preload). Закрой приложение и отправь разработчику журнал запуска.");
+      setStatus("Ошибка запуска: нет связи с Windows");
+      return;
+    }
+    const offStatus=window.orpheonDesktop.onStatus(v=>{setConnected(!!v.connected);setReady(!!v.ready);setStatus(v.message||"");});
     const offState=window.orpheonDesktop?.onState(v=>setPlayer(v));
     return ()=>{offStatus?.();offState?.();};
   },[]);
