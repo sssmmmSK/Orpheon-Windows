@@ -1,6 +1,6 @@
 {
   "name": "orpheon-windows",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "A Windows desktop companion for Orpheon, built as an independent desktop port.",
   "main": "dist-electron/main.js",
@@ -34,31 +34,9 @@
   "build": {
     "appId": "com.sssmmm.orpheonwindows",
     "productName": "Orpheon Windows",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
-      "electron/player-bridge.js",
-      "LICENSE",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "dist-electron/**/*", "electron/player-bridge.js", "LICENSE", "package.json"],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true }
   }
 }
