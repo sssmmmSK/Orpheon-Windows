@@ -539,6 +539,77 @@
     'library.add': a => need().library.add({ uris: a.uris }),
     'library.remove': a => need().library.remove({ uris: a.uris }),
 
+    'search.tracks': async a => {
+      const limit = Math.max(1, Math.min(50, Number(a.limit) || 25));
+      const offset = Math.max(0, Number(a.offset) || 0);
+      const result = await need().graphql({
+        name: 'searchTracks',
+        operation: 'query',
+        sha256Hash: 'b02683192a98dde7966b5e6655a79eeb62713eab703eda9902c932818dd52751',
+        value: null
+      }, {
+        searchTerm: String(a.query || ''),
+        offset,
+        limit,
+        numberOfTopResults: limit,
+        includeAudiobooks: true,
+        includeAuthors: true,
+        includePreReleases: false,
+        includeAlbumPreReleases: false,
+        includeEpisodeContentRatingsV2: true
+      });
+      const node = result && result.data && result.data.searchV2 && result.data.searchV2.tracksV2;
+      const rows = node && Array.isArray(node.items) ? node.items : [];
+      const items = rows.map(row => {
+        const d = row && row.item && row.item.data;
+        if (!d) return null;
+        const album = d.albumOfTrack || {};
+        const artists = d.artists && Array.isArray(d.artists.items) ? d.artists.items : [];
+        const sources = album.coverArt && Array.isArray(album.coverArt.sources) ? album.coverArt.sources : [];
+        const cover = [...sources].sort((x, y) => (y.width || 0) - (x.width || 0))[0];
+        return {
+          uri: d.uri || null,
+          name: d.name || '',
+          artists: artists.map(x => ({ name: x.profile && x.profile.name || x.name || '' })),
+          album: { name: album.name || '' },
+          image: cover && cover.url || null,
+          durationMs: d.duration && d.duration.totalMilliseconds || d.trackDuration && d.trackDuration.totalMilliseconds || 0
+        };
+      }).filter(Boolean);
+      return { items, totalCount: node && node.totalCount || items.length, offset };
+    },
+
+    'library.likedTracks': async a => {
+      const limit = Math.max(1, Math.min(50, Number(a.limit) || 50));
+      const offset = Math.max(0, Number(a.offset) || 0);
+      const result = await need().graphql({
+        name: 'fetchLibraryTracks',
+        operation: 'query',
+        sha256Hash: '087278b20b743578a6262c2b0b4bcd20d879c503cc359a2285baf083ef944240',
+        value: null
+      }, { offset, limit });
+      const node = result && result.data && result.data.me && result.data.me.library && result.data.me.library.tracks;
+      const rows = node && Array.isArray(node.items) ? node.items : [];
+      const items = rows.map(row => {
+        const d = row && row.track && row.track.data;
+        if (!d) return null;
+        const album = d.albumOfTrack || {};
+        const artists = d.artists && Array.isArray(d.artists.items) ? d.artists.items : [];
+        const sources = album.coverArt && Array.isArray(album.coverArt.sources) ? album.coverArt.sources : [];
+        const cover = [...sources].sort((x, y) => (y.width || 0) - (x.width || 0))[0];
+        return {
+          uri: d.uri || row.track._uri || null,
+          name: d.name || '',
+          artists: artists.map(x => ({ name: x.profile && x.profile.name || x.name || '' })),
+          album: { name: album.name || '' },
+          image: cover && cover.url || null,
+          durationMs: d.duration && d.duration.totalMilliseconds || d.trackDuration && d.trackDuration.totalMilliseconds || 0,
+          addedAt: row.addedAt && row.addedAt.isoString || null
+        };
+      }).filter(Boolean);
+      return { items, totalCount: node && node.totalCount || items.length, offset };
+    },
+
     // Generic access to the page's services (PlaylistAPI, RootlistAPI, ShowAPI, ConnectAPI...).
     // Typed wrappers live on the host side; this keeps the bridge small.
     'service.list': () => {
