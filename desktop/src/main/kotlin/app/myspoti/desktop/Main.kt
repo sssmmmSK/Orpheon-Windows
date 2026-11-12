@@ -11,16 +11,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import kotlinx.coroutines.launch
 
 private val Background = Color(0xFF090A0C)
 private val Panel = Color(0xFF111318)
@@ -28,18 +36,26 @@ private val Accent = Color(0xFFD6FF6B)
 private val Muted = Color(0xFF8A8D96)
 
 fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "MySpoti",
-    ) {
-        MaterialTheme {
-            MySpotiDesktopShell()
-        }
+    val runtime = remember { DesktopRuntime() }
+    Window(onCloseRequest = { runtime.close(); exitApplication() }, title = "MySpoti") {
+        MaterialTheme { MySpotiDesktopShell(runtime) }
     }
 }
 
 @Composable
-private fun MySpotiDesktopShell() {
+private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
+    val connection by runtime.state.collectAsState()
+    val scope = rememberCoroutineScope()
+    val status = when (connection) {
+        ConnectionState.Disconnected -> "Spotify не подключён"
+        ConnectionState.StartingBrowser -> "Запуск Chrome…"
+        ConnectionState.Connecting -> "Подключение к Spotify…"
+        ConnectionState.WaitingForSpotify -> "Войдите в Spotify в открывшемся окне Chrome, затем нажмите «Проверить вход»."
+        ConnectionState.Connected -> "Spotify подключён"
+        is ConnectionState.Error -> "Ошибка: ${(connection as ConnectionState.Error).message}"
+    }
+    DisposableEffect(runtime) { onDispose { runtime.close() } }
+
     Row(
         modifier = Modifier.fillMaxSize().background(Background).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -60,18 +76,28 @@ private fun MySpotiDesktopShell() {
             Text("Поиск", color = Muted, style = MaterialTheme.typography.bodyLarge)
             Text("Медиатека", color = Muted, style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.weight(1f))
-            Text("ПОДКЛЮЧЕНИЕ", color = Muted, style = MaterialTheme.typography.labelSmall)
-            Text("Spotify пока не подключён", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("СОСТОЯНИЕ", color = Muted, style = MaterialTheme.typography.labelSmall)
+            Text(status, color = if (connection == ConnectionState.Connected) Accent else Muted, style = MaterialTheme.typography.bodySmall)
+            Button(
+                onClick = { scope.launch { runtime.connect() } },
+                enabled = connection == ConnectionState.Disconnected || connection is ConnectionState.Error,
+            ) { Text("Подключить Spotify") }
+            if (connection == ConnectionState.WaitingForSpotify) {
+                OutlinedButton(onClick = { scope.launch { runtime.checkSignIn() } }) {
+                    Text("Проверить вход")
+                }
+            }
+            if (connection == ConnectionState.Connected) {
+                OutlinedButton(onClick = { scope.launch { runtime.disconnect() } }) {
+                    Text("Отключить")
+                }
+            }
         }
         Column(
             modifier = Modifier.weight(1f).fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Panel,
-                shape = RoundedCornerShape(16.dp),
-            ) {
+            Surface(modifier = Modifier.fillMaxWidth(), color = Panel, shape = RoundedCornerShape(16.dp)) {
                 Row(
                     modifier = Modifier.padding(horizontal = 22.dp, vertical = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -88,19 +114,16 @@ private fun MySpotiDesktopShell() {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("MySpoti для Windows", color = Color.White, style = MaterialTheme.typography.headlineMedium)
                     Text(
-                        "Настольная версия на базе оригинального Kotlin-проекта. Подключение Spotify и перенос экранов — следующие этапы.",
+                        "Windows-приложение использует оригинальный Spotify API и CDP-хост MySpoti.",
                         color = Muted,
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Text("Сейчас это техническая оболочка, не готовый музыкальный плеер.", color = Accent, style = MaterialTheme.typography.bodySmall)
+                    Text("Сейчас подключается сессия Spotify. Экраны поиска и плеера ещё не перенесены.", color = Accent, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Нет воспроизводимого трека", color = Muted)
+                Row(modifier = Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Управление воспроизведением будет доступно после подключения интерфейса.", color = Muted)
                     Spacer(Modifier.weight(1f))
                     Text("—:—", color = Muted)
                 }
