@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -76,8 +78,11 @@ class DesktopRuntime : AutoCloseable {
             spotify = api
 
             // Force a deterministic page-load event after the CDP listeners are installed.
-            cdp.reload()
-            withTimeout(60_000) { cdp.awaitLoad() }
+            coroutineScope {
+                val pageLoaded = async { cdp.awaitLoad() }
+                cdp.reload()
+                withTimeout(60_000) { pageLoaded.await() }
+            }
             api.onPageLoaded()
             mutableState.value = ConnectionState.WaitingForSpotify
             withTimeout(90_000) { api.awaitReady() }
