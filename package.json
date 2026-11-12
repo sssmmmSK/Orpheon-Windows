@@ -8,8 +8,8 @@
   "license": "GPL-3.0-only",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "npm run typecheck && vite build && electron-builder --win nsis",
-    "build:dir": "npm run typecheck && vite build && electron-builder --win dir",
+    "build": "npm run typecheck && vite build && electron-builder --win nsis --publish never",
+    "build:dir": "npm run typecheck && vite build && electron-builder --win dir --publish never",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc -p tsconfig.electron.json"
   },
   "dependencies": {
