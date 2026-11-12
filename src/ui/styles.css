@@ -19,3 +19,5 @@
 .cover-img{width:48px;height:48px;border-radius:7px;object-fit:cover;flex:none}
 .track-meta{min-width:0}.track-meta strong{display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button:disabled{opacity:.35;cursor:not-allowed}.progress-line{cursor:pointer}
+
+.volume-slider{width:94px;height:4px;accent-color:#d6ff6b;cursor:pointer;background:transparent}.volume-slider:disabled{opacity:.35;cursor:not-allowed}.track-row .cover-img{width:42px;height:42px}
