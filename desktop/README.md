@@ -7,7 +7,7 @@ This branch starts a GPL-3.0 Windows desktop port of the original MySpoti/Orpheo
 - The upstream repository is `kota-zo/Orpheon` (formerly `kota-zo/myspoti`).
 - `:api` is a plain Kotlin/JVM contract and has no Android dependency.
 - `:api-spotify` is also Kotlin/JVM and implements Spotify catalog, search, library and player operations.
-- `:host-cdp` is Kotlin/JVM and already speaks Chrome DevTools Protocol. It is currently used by integration tests, not shipped as a desktop app.
+- `:host-cdp` is Kotlin/JVM and already contains the production `CdpHost` implementation for Chrome DevTools Protocol, plus live integration tests. It is a reusable desktop playback host, but not a packaged desktop application or UI.
 - The production UI is in `:app` and is currently an Android application. It cannot simply be packaged as a Windows EXE.
 - `:host-android`, Android media services, Android Auto, Wear OS and Android-only storage/DRM integrations are not Windows components.
 
