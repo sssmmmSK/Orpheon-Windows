@@ -1,82 +1,58 @@
 import { EventEmitter } from "node:events";
-import WebSocket from "ws";
-
-type Target = { id: string; type: string; url: string; webSocketDebuggerUrl: string };
-type CdpMessage = { id?: number; method?: string; params?: any; result?: any; error?: any };
+import type { WebContents } from "electron";
 
 export class SpotifyCdp extends EventEmitter {
-  private socket: WebSocket | null = null;
-  private seq = 0;
-  private pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>();
-  private targetId = "";
   private bridge = "";
   private reconnecting = false;
+  private attached = false;
+  private readonly onDebuggerMessage = (_event: Electron.Event, method: string, params: Record<string, any>) => {
+    if (method === "Runtime.bindingCalled" && params?.name === "__mspHostPost") {
+      try { this.emit("bridge", JSON.parse(params.payload)); } catch { /* malformed page message */ }
+    }
+    if (method === "Page.frameNavigated" && params?.frame?.parentId == null && params?.frame?.url?.startsWith("https://open.spotify.com")) {
+      setTimeout(() => void this.inject(), 900);
+    }
+  };
 
-  constructor(bridge: string) { super(); this.bridge = bridge; }
+  constructor(bridge: string, private readonly contents: WebContents) {
+    super();
+    this.bridge = bridge;
+  }
 
   async connect(): Promise<void> {
     if (this.reconnecting) return;
     this.reconnecting = true;
     try {
-      const response = await fetch("http://127.0.0.1:9222/json/list");
-      if (!response.ok) throw new Error("Chrome DevTools endpoint is unavailable");
-      const targets = await response.json() as Target[];
-      let target = targets.find(t => t.type === "page" && t.url.startsWith("https://open.spotify.com"));
-      if (!target) {
-        const opened = await fetch("http://127.0.0.1:9222/json/new?https://open.spotify.com/", { method: "PUT" });
-        if (!opened.ok) throw new Error("Could not open Spotify tab in the browser");
-        target = await opened.json() as Target;
+      const debuggerApi = this.contents.debugger;
+      if (!debuggerApi.isAttached()) debuggerApi.attach("1.3");
+      if (!this.attached) {
+        debuggerApi.on("message", this.onDebuggerMessage);
+        debuggerApi.on("detach", (_event, reason) => {
+          this.emit("status", { connected: false, message: "Встроенный плеер отключён: " + reason });
+        });
+        this.attached = true;
       }
-      if (!target.webSocketDebuggerUrl) throw new Error("Spotify tab has no CDP WebSocket endpoint");
-      this.targetId = target.id;
-      this.socket = new WebSocket(target.webSocketDebuggerUrl);
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("CDP connection timed out")), 10000);
-        this.socket!.once("open", () => { clearTimeout(timer); resolve(); });
-        this.socket!.once("error", e => { clearTimeout(timer); reject(e); });
-      });
-      this.socket.on("message", data => void this.onMessage(data.toString()));
-      this.socket.on("close", () => { this.emit("status", { connected: false, message: "Browser connection closed" }); this.rejectPending(); });
-      this.socket.on("error", e => this.emit("status", { connected: false, message: e.message }));
       await this.send("Runtime.enable");
       await this.send("Page.enable");
       await this.send("Runtime.addBinding", { name: "__mspHostPost" });
       await this.send("Page.addScriptToEvaluateOnNewDocument", { source: this.bridge });
-      await this.send("Runtime.evaluate", { expression: this.bridge, awaitPromise: false, returnByValue: true });
-      this.emit("status", { connected: true, message: "Spotify browser connected" });
-    } finally { this.reconnecting = false; }
-  }
-
-  private async onMessage(raw: string) {
-    let msg: CdpMessage;
-    try { msg = JSON.parse(raw); } catch { return; }
-    if (msg.id && this.pending.has(msg.id)) {
-      const p = this.pending.get(msg.id)!; this.pending.delete(msg.id);
-      if (msg.error) p.reject(new Error(msg.error.message || "CDP error")); else p.resolve(msg.result);
-      return;
-    }
-    if (msg.method === "Runtime.bindingCalled" && msg.params?.name === "__mspHostPost") {
-      try { this.emit("bridge", JSON.parse(msg.params.payload)); } catch { /* malformed page message */ }
-    }
-    if (msg.method === "Page.frameNavigated" && msg.params?.frame?.url?.startsWith("https://open.spotify.com")) {
-      setTimeout(() => void this.inject(), 900);
+      this.emit("status", { connected: true, message: "Встроенный Spotify запущен" });
+    } finally {
+      this.reconnecting = false;
     }
   }
 
   private async inject() {
-    try { await this.send("Runtime.evaluate", { expression: this.bridge, awaitPromise: false }); } catch { /* next navigation/ready event retries */ }
+    try {
+      await this.send("Runtime.evaluate", { expression: this.bridge, awaitPromise: false, returnByValue: true });
+    } catch (error) {
+      this.emit("status", { connected: true, ready: false, message: "Ожидаю загрузки Spotify: " + String(error) });
+    }
   }
 
   private send(method: string, params: Record<string, unknown> = {}): Promise<any> {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return Promise.reject(new Error("Spotify browser is not connected"));
-    const id = ++this.seq;
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.socket!.send(JSON.stringify({ id, method, params }), error => {
-        if (error) { this.pending.delete(id); reject(error); }
-      });
-      setTimeout(() => { const p = this.pending.get(id); if (p) { this.pending.delete(id); p.reject(new Error("CDP command timed out")); } }, 15000);
-    });
+    if (!this.contents.debugger.isAttached()) return Promise.reject(new Error("Встроенный Spotify отключён"));
+    return this.contents.debugger.sendCommand(method, params);
   }
 
   async call(method: string, args: Record<string, unknown> = {}): Promise<any> {
@@ -87,13 +63,10 @@ export class SpotifyCdp extends EventEmitter {
   }
 
   async close() {
-    try { this.socket?.close(); } catch { /* ignored */ }
-    this.socket = null;
-    this.rejectPending();
-  }
-
-  private rejectPending() {
-    for (const p of this.pending.values()) p.reject(new Error("Spotify browser disconnected"));
-    this.pending.clear();
+    try {
+      this.contents.debugger.removeListener("message", this.onDebuggerMessage);
+      if (this.contents.debugger.isAttached()) this.contents.debugger.detach();
+    } catch { /* ignored during shutdown */ }
+    this.attached = false;
   }
 }
