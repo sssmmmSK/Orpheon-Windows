@@ -72,6 +72,7 @@ async function launchSpotifyBrowser() {
     if (!alreadyRunning) {
       const child: ChildProcess = spawn(executable, [
         "--remote-debugging-port=9222",
+        "--remote-allow-origins=*",
         `--user-data-dir=${profile}`,
         "--no-first-run",
         "--no-default-browser-check",
