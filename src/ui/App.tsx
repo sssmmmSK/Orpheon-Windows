@@ -41,7 +41,7 @@ export default function App() {
       <header className="topbar">
         <div className="history"><button className="icon-btn"><ChevronLeft/></button><button className="icon-btn"><ChevronRight/></button></div>
         <div className="search-wrap"><Search size={17}/><input value={query} onChange={e => {setQuery(e.target.value); setActive("Поиск");}} placeholder="Что хочешь послушать?"/></div>
-        <button className="login-btn" onClick={() => window.open("https://open.spotify.com/", "_blank", "noopener,noreferrer")}><LogIn size={16}/>Открыть Spotify</button>
+        <button className="login-btn" onClick={() => { void (window.orpheonDesktop?.openSpotify() ?? Promise.resolve({ opened: false })); }}><LogIn size={16}/>Запустить Spotify</button>
       </header>
       <section className="content">
         <div className="greeting"><div><div className="eyebrow">ТВОЯ МУЗЫКА · ТВОЁ ПРОСТРАНСТВО</div><h1>{active === "Поиск" ? "Поиск музыки" : active === "Медиатека" ? "Твоя медиатека" : "С возвращением."}</h1><p>Тёмный режим. Чистый звук. Ничего лишнего.</p></div><div className="hero-orb"><Disc3 size={76} strokeWidth={1}/></div></div>
@@ -54,7 +54,7 @@ export default function App() {
             <span className="album-name">{track.album}</span><span className="track-time">{track.time}</span>
           </div>)}
         </div>
-        <div className="notice"><Radio size={18}/><div><strong>Это первый этап разработки</strong><span>Сейчас готов каркас Windows-приложения. Подключение Spotify, реальная библиотека и воспроизведение будут добавлены отдельно.</span></div></div>
+        <div className="notice"><Radio size={18}/><div><strong>Это первый этап разработки</strong><span>Spotify открывается в отдельном защищённом окне приложения. Сейчас проверяем совместимость встроенного движка с авторизацией и защищённым воспроизведением; синхронизация библиотеки и управление плеером ещё впереди.</span></div></div>
       </section>
     </main>
     <footer className="player">
