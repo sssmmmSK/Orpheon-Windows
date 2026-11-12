@@ -4,6 +4,27 @@ import path from "node:path";
 const isDev = !app.isPackaged;
 let spotifyWindow: BrowserWindow | null = null;
 
+const spotifyAuthHosts = new Set([
+  "open.spotify.com",
+  "accounts.spotify.com",
+  "spotify.com",
+  "accounts.google.com",
+  "appleid.apple.com",
+  "www.facebook.com",
+  "login.live.com",
+  "login.microsoftonline.com"
+]);
+
+function isSpotifyOrAuthUrl(rawUrl: string) {
+  try {
+    const url = new URL(rawUrl);
+    return url.protocol === "https:" &&
+      [...spotifyAuthHosts].some(host => url.hostname === host || url.hostname.endsWith("." + host));
+  } catch {
+    return false;
+  }
+}
+
 function createSpotifyWindow() {
   if (spotifyWindow && !spotifyWindow.isDestroyed()) {
     spotifyWindow.focus();
@@ -26,12 +47,29 @@ function createSpotifyWindow() {
     }
   });
 
+  // Spotify officially supports mainstream desktop browsers, not Electron's
+  // product-specific user-agent token. Keep Chromium's real version but omit
+  // the Electron marker so the page follows its normal Chrome code path.
+  const chromiumUserAgent = spotifyWindow.webContents.getUserAgent()
+    .replace(/\\sElectron\\/[^\\s]+/i, "");
+  spotifyWindow.webContents.setUserAgent(chromiumUserAgent);
+
+  // OAuth providers open separate HTTPS windows during sign-in. Keep known
+  // identity-provider flows inside this persistent Spotify session.
   spotifyWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("https://accounts.spotify.com/") || url.startsWith("https://open.spotify.com/")) {
-      return { action: "allow" };
-    }
+    if (isSpotifyOrAuthUrl(url)) return { action: "allow" };
     if (url.startsWith("https://")) void shell.openExternal(url);
     return { action: "deny" };
+  });
+
+  spotifyWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (isMainFrame) {
+      console.error("[Spotify] Page load failed:", errorCode, errorDescription, validatedURL);
+    }
+  });
+
+  spotifyWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("[Spotify] Renderer process exited:", details.reason, details.exitCode);
   });
 
   spotifyWindow.on("closed", () => {
