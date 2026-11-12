@@ -146,7 +146,7 @@ class DesktopRuntime : AutoCloseable {
     }
 
     private fun profileDirectory(): Path {
-        val base = System.getenv("LOCALAPPDATA")?.let(Paths::get)
+        val base = System.getenv("LOCALAPPDATA")?.let { Paths.get(it) }
             ?: Paths.get(System.getProperty("user.home"))
         val dir = base.resolve("MySpoti").resolve("ChromeProfile")
         Files.createDirectories(dir)
