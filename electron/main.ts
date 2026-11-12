@@ -51,7 +51,7 @@ function createSpotifyWindow() {
   // product-specific user-agent token. Keep Chromium's real version but omit
   // the Electron marker so the page follows its normal Chrome code path.
   const chromiumUserAgent = spotifyWindow.webContents.getUserAgent()
-    .replace(/\\sElectron\\/[^\\s]+/i, "");
+    .replace(" Electron/" + process.versions.electron, "");
   spotifyWindow.webContents.setUserAgent(chromiumUserAgent);
 
   // OAuth providers open separate HTTPS windows during sign-in. Keep known
