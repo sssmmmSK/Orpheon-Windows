@@ -38,10 +38,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Check TypeScript
-        run: npm run typecheck
-
-      - name: Build NSIS installer
+      - name: Type-check, build app, and package NSIS installer
         run: npm run build
 
       - name: Publish installer artifact
