@@ -8,7 +8,7 @@ import {
 
 const tracks = [
   { title: "Midnight City", artist: "M83", album: "Hurry Up, We're Dreaming", time: "4:03", color: "violet" },
-  { title: "After Dark", artist: "Mr.Kitty", album: "Time", time: "4: After", color: "blue" },
+  { title: "After Dark", artist: "Mr.Kitty", album: "Time", time: "4:04", color: "blue" },
   { title: "The Perfect Girl", artist: "Mareux", album: "The Perfect Girl", time: "3:14", color: "pink" },
   { title: "Resonance", artist: "HOME", album: "Odyssey", time: "3:32", color: "amber" },
   { title: "A Real Hero", artist: "College & Electric Youth", album: "A Real Hero", time: "4:27", color: "green" }
@@ -48,7 +48,7 @@ export default function App() {
         <div className="section-title"><div><span className="eyebrow">ПОДБОРКА</span><h2>{query ? "Результаты поиска" : "Треки для настроения"}</h2></div><button className="text-btn">Показать всё <ChevronRight size={15}/></button></div>
         <div className="track-table">
           <div className="track-header"><span>#</span><span>НАЗВАНИЕ</span><span>АЛЬБОМ</span><span><Clock3 size={15}/></span></div>
-          {tracks.filter(t => !query || (t.title + t.artist + t.album).toLowerCase().includes(query.toLowerCase())).map((track, i) => <div className="track-row" key={track.title} onDoubleClick={() => setPlaying(true)}>
+          {tracks.filter(t => !query || (t.title + t.artist + t.album).toLowerCase().includes(query.toLowerCase())).map((track, i) => <div className="track-row" key={track.title}>
             <span className="track-number">{String(i + 1).padStart(2, "0")}</span>
             <div className="track-name"><div className={"cover " + track.color}><Disc3 size={20}/></div><div><strong>{track.title}</strong><small>{track.artist}</small></div></div>
             <span className="album-name">{track.album}</span><span className="track-time">{track.time}</span>
