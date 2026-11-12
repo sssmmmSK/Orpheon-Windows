@@ -5,6 +5,7 @@ declare global {
     orpheonDesktop?: {
       platform: string;
       version: string;
+      openSpotify: () => Promise<{ opened: boolean }>;
     };
   }
 }
