@@ -9,7 +9,6 @@ let spotify: SpotifyCdp | null = null;
 let spotifyView: WebContentsView | null = null;
 let spotifyLoginVisible = false;
 let spotifyReady = false;
-let launchPromise: Promise<void> | null = null;
 
 function logDiagnostic(kind: string, details: unknown) {
   try {
@@ -77,7 +76,6 @@ async function launchSpotifyBrowser() {
   spotify.on("status", status => {
     if (status.connected === false) {
       spotifyReady = false;
-      launchPromise = null;
     }
     send("spotify:status", status);
   });
@@ -89,6 +87,7 @@ async function launchSpotifyBrowser() {
       setSpotifyLoginVisible(false);
       send("spotify:status", { connected: true, ready: true, message: "Spotify подключён внутри Orpheon" });
     }
+    else if (message.type === "auth-required") send("spotify:status", { connected: true, ready: false, message: "Войдите в свой аккаунт Spotify в этом окне" });
     else if (message.type === "error") send("spotify:status", { connected: true, ready: false, message: message.error });
     else if (message.type === "jserror") logDiagnostic("spotify-page-error", message);
     else if (message.type === "net") logDiagnostic("spotify-network", message);
@@ -104,7 +103,6 @@ async function launchSpotifyBrowser() {
   await spotify.connect();
   await spotifyView.webContents.loadURL("https://open.spotify.com/");
   send("spotify:status", { connected: true, ready: false, message: "Войдите в Spotify в окне Orpheon" });
-  launchPromise = Promise.resolve();
 }
 
 
@@ -174,7 +172,7 @@ ipcMain.handle("spotify:launch", async () => {
 ipcMain.handle("spotify:show-login", async () => {
   if (!spotifyView || spotifyView.webContents.isDestroyed()) return launchSpotifyBrowser();
   setSpotifyLoginVisible(true);
-  await spotifyView.webContents.loadURL("https://accounts.spotify.com/");
+  await spotifyView.webContents.loadURL("https://open.spotify.com/");
   return { opened: true };
 });
 ipcMain.handle("spotify:command", async (_event, method: string, args?: Record<string, unknown>) => {
