@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose)
+    // Predeclare Kotlin plugins used by imported upstream modules.
+    alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
 }
 
 group = "app.myspoti"
