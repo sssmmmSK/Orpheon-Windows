@@ -1,0 +1,44 @@
+name: MySpoti Windows desktop
+
+on:
+  push:
+    branches: [myspoti-windows-port]
+    paths:
+      - "desktop/**"
+      - ".github/workflows/windows-desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.4.1"
+
+      - name: Build Windows packages
+        working-directory: desktop
+        run: gradle --no-daemon packageExe packageMsi
+
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: MySpoti-Windows-preview
+          path: |
+            desktop/build/compose/binaries/main/exe/*.exe
+            desktop/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+          retention-days: 14
