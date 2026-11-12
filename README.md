@@ -4,7 +4,7 @@ A Windows desktop companion for the official Spotify Web Player, using the deskt
 
 ## Current status
 
-**0.2.0 — first CDP integration build.** The demo track list has been removed. The app can launch Microsoft Edge or Google Chrome with a dedicated Orpheon browser profile, attach through Chrome DevTools Protocol, inject the upstream Orpheon player bridge, receive player state, and send basic playback commands from the native UI.
+**0.2.1 — CDP integration and startup diagnostics.** The Windows installer and end-to-end Spotify controls for this revision still need to pass the automated build and a real Windows test. The demo track list has been removed. The app can launch Microsoft Edge or Google Chrome with a dedicated Orpheon browser profile, attach through Chrome DevTools Protocol, inject the upstream Orpheon player bridge, receive player state, and send basic playback commands from the native UI.
 
 The Spotify login and DRM-protected playback still need to be verified on a real Windows machine. Spotify may change its internal Web Player services, which can break the bridge. This build does not use Spotify Web Playback SDK or Spotify Web API playback endpoints, so it is designed to work with a free Spotify account. It does not remove or skip Spotify advertisements.
 
