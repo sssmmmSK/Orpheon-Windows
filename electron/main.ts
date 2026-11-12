@@ -1,12 +1,14 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, WebContentsView, ipcMain, shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
-import { spawn, ChildProcess } from "node:child_process";
 import { SpotifyCdp } from "./cdp";
 
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 let spotify: SpotifyCdp | null = null;
+let spotifyView: WebContentsView | null = null;
+let spotifyLoginVisible = false;
+let spotifyReady = false;
 let launchPromise: Promise<void> | null = null;
 
 function logDiagnostic(kind: string, details: unknown) {
@@ -30,82 +32,81 @@ function send(channel: string, payload: unknown) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
 }
 
-function browserCandidates(): string[] {
-  if (process.platform !== "win32") return ["google-chrome", "chromium", "microsoft-edge"];
-  const roots = [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"], process.env.LOCALAPPDATA].filter(Boolean) as string[];
-  return roots.flatMap(root => [
-    path.join(root, "Microsoft", "Edge", "Application", "msedge.exe"),
-    path.join(root, "Google", "Chrome", "Application", "chrome.exe")
-  ]);
-}
-
-function findBrowser(): string {
-  return browserCandidates().find(p => fs.existsSync(p)) || (process.platform === "win32" ? "" : "google-chrome");
-}
-
-async function waitForCdp(timeoutMs = 30000) {
-  const until = Date.now() + timeoutMs;
-  while (Date.now() < until) {
-    try {
-      const r = await fetch("http://127.0.0.1:9222/json/version");
-      if (r.ok) return;
-    } catch { /* browser is starting */ }
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  throw new Error("Не удалось запустить Chrome/Edge с удалённой отладкой. Закройте браузер и повторите.");
+function setSpotifyLoginVisible(visible: boolean) {
+  if (!mainWindow || mainWindow.isDestroyed() || !spotifyView || spotifyView.webContents.isDestroyed()) return;
+  spotifyLoginVisible = visible;
+  const bounds = mainWindow.getContentBounds();
+  spotifyView.setBounds(visible
+    ? { x: 0, y: 0, width: bounds.width, height: bounds.height }
+    : { x: 0, y: 0, width: 1, height: 1 });
 }
 
 async function launchSpotifyBrowser() {
-  if (launchPromise) return launchPromise;
-  launchPromise = (async () => {
-    const executable = findBrowser();
-    if (!executable) throw new Error("Не найден Microsoft Edge или Google Chrome. Установите один из браузеров.");
-    const profile = path.join(app.getPath("userData"), "spotify-browser-profile");
-    fs.mkdirSync(profile, { recursive: true });
+  if (!mainWindow || mainWindow.isDestroyed()) throw new Error("Окно Orpheon ещё не готово");
+  if (spotifyView && !spotifyView.webContents.isDestroyed()) {
+    setSpotifyLoginVisible(!spotifyReady);
+    return;
+  }
 
-    let alreadyRunning = false;
-    try {
-      const r = await fetch("http://127.0.0.1:9222/json/version");
-      alreadyRunning = r.ok;
-    } catch { /* launch below */ }
-
-    if (!alreadyRunning) {
-      const child: ChildProcess = spawn(executable, [
-        "--remote-debugging-port=9222",
-        "--remote-allow-origins=*",
-        `--user-data-dir=${profile}`,
-        "--no-first-run",
-        "--no-default-browser-check",
-        "https://open.spotify.com/"
-      ], { detached: false, stdio: "ignore", windowsHide: false });
-      child.on("error", e => send("spotify:status", { connected: false, message: e.message }));
+  const bridgePath = path.join(app.getAppPath(), "electron", "player-bridge.js");
+  spotifyView = new WebContentsView({
+    webPreferences: {
+      partition: "persist:orpheon-spotify",
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      backgroundThrottling: false,
+      autoplayPolicy: "no-user-gesture-required"
     }
-
-    await waitForCdp();
-    if (!spotify) {
-      const bridgePath = path.join(app.getAppPath(), "electron", "player-bridge.js");
-      spotify = new SpotifyCdp(fs.readFileSync(bridgePath, "utf8"));
-      spotify.on("status", status => {
-        if (status.connected === false) launchPromise = null;
-        send("spotify:status", status);
-      });
-      spotify.on("bridge", message => {
-        if (message.type === "state") send("spotify:state", message.state);
-        else if (message.type === "queue") send("spotify:queue", message.queue);
-        else if (message.type === "ready") send("spotify:status", { connected: true, ready: true, message: "Плеер Spotify готов" });
-        else if (message.type === "error") send("spotify:status", { connected: true, ready: false, message: message.error });
-        else if (message.type === "jserror") logDiagnostic("spotify-page-error", message);
-        else if (message.type === "net") logDiagnostic("spotify-network", message);
-      });
-    }
-    await spotify.connect();
-    send("spotify:status", { connected: true, ready: false, message: "Ожидаю загрузки плеера Spotify…" });
-  })().catch(error => {
-    launchPromise = null;
-    throw error;
   });
-  return launchPromise;
+  spotifyLoginVisible = true;
+  spotifyReady = false;
+  mainWindow.contentView.addChildView(spotifyView);
+  setSpotifyLoginVisible(true);
+  spotifyView.webContents.setAudioMuted(false);
+  spotifyView.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("https://accounts.spotify.com/") || url.startsWith("https://open.spotify.com/")) {
+      void spotifyView?.webContents.loadURL(url);
+    } else if (url.startsWith("https://")) {
+      void shell.openExternal(url);
+    }
+    return { action: "deny" };
+  });
+
+  spotify = new SpotifyCdp(fs.readFileSync(bridgePath, "utf8"), spotifyView.webContents);
+  spotify.on("status", status => {
+    if (status.connected === false) {
+      spotifyReady = false;
+      launchPromise = null;
+    }
+    send("spotify:status", status);
+  });
+  spotify.on("bridge", message => {
+    if (message.type === "state") send("spotify:state", message.state);
+    else if (message.type === "queue") send("spotify:queue", message.queue);
+    else if (message.type === "ready") {
+      spotifyReady = true;
+      setSpotifyLoginVisible(false);
+      send("spotify:status", { connected: true, ready: true, message: "Spotify подключён внутри Orpheon" });
+    }
+    else if (message.type === "error") send("spotify:status", { connected: true, ready: false, message: message.error });
+    else if (message.type === "jserror") logDiagnostic("spotify-page-error", message);
+    else if (message.type === "net") logDiagnostic("spotify-network", message);
+  });
+
+  spotifyView.webContents.on("did-fail-load", (_event, code, description, url, isMainFrame) => {
+    if (isMainFrame) {
+      logDiagnostic("embedded-spotify-load-failed", { code, description, url });
+      send("spotify:status", { connected: false, ready: false, message: "Не удалось загрузить Spotify: " + description });
+    }
+  });
+
+  await spotify.connect();
+  await spotifyView.webContents.loadURL("https://open.spotify.com/");
+  send("spotify:status", { connected: true, ready: false, message: "Войдите в Spotify в окне Orpheon" });
+  launchPromise = Promise.resolve();
 }
+
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -162,11 +163,18 @@ function createWindow() {
     if (url.startsWith("https://")) void shell.openExternal(url);
     return { action: "deny" };
   });
+  mainWindow.on("resize", () => { if (spotifyLoginVisible) setSpotifyLoginVisible(true); });
   mainWindow.on("closed", () => { mainWindow = null; });
 }
 
 ipcMain.handle("spotify:launch", async () => {
   await launchSpotifyBrowser();
+  return { opened: true };
+});
+ipcMain.handle("spotify:show-login", async () => {
+  if (!spotifyView || spotifyView.webContents.isDestroyed()) return launchSpotifyBrowser();
+  setSpotifyLoginVisible(true);
+  await spotifyView.webContents.loadURL("https://accounts.spotify.com/");
   return { opened: true };
 });
 ipcMain.handle("spotify:command", async (_event, method: string, args?: Record<string, unknown>) => {
