@@ -131,6 +131,14 @@ function createWindow() {
     showRendererFailure(String(error));
   });
 
+  mainWindow.webContents.on("did-finish-load", () => {
+    void mainWindow?.webContents.executeJavaScript("Boolean(window.orpheonDesktop)")
+      .then(available => {
+        logDiagnostic("preload-bridge-check", { available });
+        if (!available) showRendererFailure("Electron preload bridge is missing. Check preload-error in orpheon-diagnostics.log.");
+      })
+      .catch(error => logDiagnostic("preload-bridge-check-error", String(error)));
+  });
   mainWindow.webContents.on("did-fail-load", (_event, code, description, url, isMainFrame) => {
     if (isMainFrame) {
       logDiagnostic("did-fail-load", { code, description, url });
