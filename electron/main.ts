@@ -17,8 +17,8 @@ function logDiagnostic(kind: string, details: unknown) {
 }
 function showRendererFailure(message: string) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  const safe = JSON.stringify(message.slice(0, 1800));
-  void mainWindow.webContents.executeJavaScript(`document.body.innerHTML = '<div style="min-height:100vh;background:#090a0c;color:#eee;font:14px Segoe UI;padding:48px;box-sizing:border-box"><h2 style="color:#d6ff6b">Orpheon не смог загрузить интерфейс</h2><p>Скопируй текст ошибки и отправь его в ChatGPT:</p><pre style="white-space:pre-wrap;background:#17181d;padding:18px;border-radius:8px;color:#ffb4b4">${"${safe}"}</pre><p>Журнал: %APPDATA%\\orpheon-windows\\orpheon-diagnostics.log</p></div>';`).catch(() => undefined);
+  const html = `<div style="min-height:100vh;background:#090a0c;color:#eee;font:14px Segoe UI;padding:48px;box-sizing:border-box"><h2 style="color:#d6ff6b">Orpheon не смог загрузить интерфейс</h2><p>Скопируй текст ошибки и отправь его в ChatGPT:</p><pre style="white-space:pre-wrap;background:#17181d;padding:18px;border-radius:8px;color:#ffb4b4">${message.slice(0, 1800).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!))}</pre><p>Журнал: %APPDATA%\\orpheon-windows\\orpheon-diagnostics.log</p></div>`;
+  void mainWindow.webContents.executeJavaScript(`document.body.innerHTML = ${JSON.stringify(html)};`).catch(() => undefined);
 }
 
 function send(channel: string, payload: unknown) {
