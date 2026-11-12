@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("orpheonDesktop", {
-  platform: process.platform, version: "0.3.0",
+  platform: process.platform, version: "0.3.1",
   launchSpotify: () => ipcRenderer.invoke("spotify:launch"),
   showSpotifyLogin: () => ipcRenderer.invoke("spotify:show-login"),
   command: (method: string, args?: Record<string, unknown>) => ipcRenderer.invoke("spotify:command", method, args),
