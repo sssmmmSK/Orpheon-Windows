@@ -7,7 +7,20 @@
     <title>Orpheon Windows</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div style="min-height:100vh;background:#090a0c;color:#aaa;display:grid;place-items:center;font:14px Segoe UI">Запуск Orpheon…</div></div>
+    <script>
+      (() => {
+        const report = (kind, value) => {
+          const root = document.getElementById('root');
+          if (!root) return;
+          const message = value && (value.stack || value.message) ? (value.stack || value.message) : String(value);
+          root.innerHTML = '<div style="min-height:100vh;background:#090a0c;color:#eee;padding:48px;box-sizing:border-box;font:14px Segoe UI"><h2 style="color:#d6ff6b">Ошибка интерфейса Orpheon</h2><p>Пришли этот текст в ChatGPT:</p><pre style="white-space:pre-wrap;background:#17181d;padding:18px;border-radius:8px;color:#ffb4b4"></pre></div>';
+          root.querySelector('pre').textContent = kind + ': ' + message;
+        };
+        window.addEventListener('error', e => report('JavaScript error', e.error || e.message));
+        window.addEventListener('unhandledrejection', e => report('Unhandled promise', e.reason));
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
