@@ -8,9 +8,9 @@
   "license": "GPL-3.0-only",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "tsc -b && vite build && electron-builder --win nsis",
-    "build:dir": "tsc -b && vite build && electron-builder --win dir",
-    "typecheck": "tsc -b --pretty"
+    "build": "npm run typecheck && vite build && electron-builder --win nsis",
+    "build:dir": "npm run typecheck && vite build && electron-builder --win dir",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc -p tsconfig.electron.json"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -32,9 +32,24 @@
   "build": {
     "appId": "com.sssmmm.orpheonwindows",
     "productName": "Orpheon Windows",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "dist-electron/**/*", "package.json"],
-    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
