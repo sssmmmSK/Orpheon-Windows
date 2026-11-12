@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Disc3, Search, Library, Heart, Clock3, Plus, Home, Settings, Download, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat2, Volume2, MonitorSpeaker, LogIn, Radio, ExternalLink } from "lucide-react";
+import { Disc3, Search, Library, Heart, Clock3, Plus, Home, Settings, Download, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat2, Volume2, MonitorSpeaker, LogIn, Radio } from "lucide-react";
 
 type Track = { name?: string; artists?: { name: string }[]; album?: { name: string } | null; image?: string | null; durationMs?: number | null; uri?: string; kind?: string };
 type PlayerState = { track?: Track | null; isPaused?: boolean; isBuffering?: boolean; positionMs?: number; durationMs?: number; shuffle?: boolean; repeat?: number };
