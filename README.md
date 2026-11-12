@@ -4,7 +4,7 @@ An independent Windows desktop port project inspired by [Orpheon](https://github
 
 ## Current status
 
-**Prototype / foundation (0.1.0).** This repository currently contains the Windows desktop shell, a dark UI prototype, and a Windows CI build workflow. Spotify authentication, real account data, playback, queue, and library synchronization are not implemented yet. The visible track rows are sample UI data and do not play audio.
+**Prototype / foundation (0.1.0).** This repository currently contains the Windows desktop shell, a dark UI prototype, and a Windows CI build workflow. The desktop shell and a dedicated Spotify window with a persistent app session are implemented. This is an early compatibility step: successful Spotify sign-in, DRM-protected playback, account data, queue control, and library synchronization have not yet been verified or implemented in the custom UI. The visible track rows are sample UI data and do not play audio.
 
 ## Stack
 
