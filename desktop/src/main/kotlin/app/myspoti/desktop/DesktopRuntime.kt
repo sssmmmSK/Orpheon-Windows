@@ -1,6 +1,8 @@
 package app.myspoti.desktop
 
 import app.myspoti.host.cdp.CdpHost
+import app.myspoti.api.PlayerState
+import app.myspoti.api.Track
 import app.myspoti.spotify.SpotifyApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,6 +12,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
@@ -39,6 +42,8 @@ class DesktopRuntime : AutoCloseable {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutableState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val state: StateFlow<ConnectionState> = mutableState.asStateFlow()
+    private val mutablePlayerState = MutableStateFlow<PlayerState?>(null)
+    val playerState: StateFlow<PlayerState?> = mutablePlayerState.asStateFlow()
 
     @Volatile private var chrome: Process? = null
     @Volatile private var host: CdpHost? = null
@@ -76,6 +81,7 @@ class DesktopRuntime : AutoCloseable {
             host = cdp
             val api = SpotifyApi(cdp, scope)
             spotify = api
+            scope.launch { api.player.state.collect { mutablePlayerState.value = it } }
 
             // Force a deterministic page-load event after the CDP listeners are installed.
             coroutineScope {
@@ -114,6 +120,28 @@ class DesktopRuntime : AutoCloseable {
 
     fun api(): SpotifyApi? = spotify
 
+    suspend fun searchTracks(query: String): List<Track> {
+        if (query.isBlank()) return emptyList()
+        return spotify?.search?.tracks(query.trim(), limit = 25)?.items.orEmpty()
+    }
+
+    suspend fun playTrack(track: Track) {
+        val api = spotify ?: error("Сначала подключите Spotify")
+        api.player.play(track.uri, track.uri)
+    }
+
+    suspend fun togglePlayback() {
+        val api = spotify ?: error("Сначала подключите Spotify")
+        if (mutablePlayerState.value?.isPaused == false) api.player.pause() else api.player.resume()
+    }
+
+    suspend fun nextTrack() { spotify?.player?.next() ?: error("Spotify не подключён") }
+    suspend fun previousTrack() { spotify?.player?.previous() ?: error("Spotify не подключён") }
+    suspend fun saveTrack(track: Track) {
+        val api = spotify ?: error("Сначала подключите Spotify")
+        api.library.add(listOf(track.uri))
+    }
+
     suspend fun disconnect() {
         disconnectInternal()
         mutableState.value = ConnectionState.Disconnected
@@ -123,6 +151,7 @@ class DesktopRuntime : AutoCloseable {
         runCatching { host?.close() }
         host = null
         spotify = null
+        mutablePlayerState.value = null
         chrome?.let { process ->
             runCatching { process.destroy() }
             runCatching { if (!process.waitFor(2, TimeUnit.SECONDS)) process.destroyForcibly() }
