@@ -733,24 +733,42 @@
   };
 
   const started = Date.now();
-  const boot = () => {
+  let attached = false;
+  let authNoticeAt = 0;
+  let announced = false;
+  const boot = async () => {
     try {
       services = resolveServices();
     } catch (e) {
       services = null;
     }
     if (services) {
-      attach();
-      park();
-      post({ type: 'ready', version: VERSION });
-      pushState();
-      return;
+      if (!attached) {
+        attach();
+        attached = true;
+      }
+      try {
+        const token = await services.token.getToken();
+        if (token && !token.isAnonymous && token.accessToken) {
+          if (!announced) {
+            announced = true;
+            park();
+            post({ type: 'ready', version: VERSION });
+            pushState();
+          }
+          return;
+        }
+      } catch (e) { /* not signed in yet; keep the sign-in page visible */ }
+      if (Date.now() - authNoticeAt > 3000) {
+        authNoticeAt = Date.now();
+        post({ type: 'auth-required' });
+      }
     }
-    if (Date.now() - started > READY_TIMEOUT_MS) {
+    if (Date.now() - started > READY_TIMEOUT_MS && !services) {
       post({ type: 'error', error: 'player services not found' });
       return;
     }
-    setTimeout(boot, 250);
+    setTimeout(boot, 1000);
   };
   boot();
 })();
