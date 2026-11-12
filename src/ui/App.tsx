@@ -16,7 +16,7 @@ const tracks = [
 
 export default function App() {
   const [active, setActive] = useState("Главная");
-  const [playing, setPlaying] = useState(false);
+  const [playing] = useState(false);
   const [query, setQuery] = useState("");
 
   return <div className="app-shell">
@@ -54,12 +54,12 @@ export default function App() {
             <span className="album-name">{track.album}</span><span className="track-time">{track.time}</span>
           </div>)}
         </div>
-        <div className="notice"><Radio size={18}/><div><strong>Это первый этап разработки</strong><span>Spotify открывается в отдельном защищённом окне приложения. Сейчас проверяем совместимость встроенного движка с авторизацией и защищённым воспроизведением; синхронизация библиотеки и управление плеером ещё впереди.</span></div></div>
+        <div className="notice"><Radio size={18}/><div><strong>Подключение Spotify</strong><span>Нажми «Запустить Spotify», чтобы открыть отдельное окно сервиса. Вход выполняй только на официальной странице Spotify. Список треков выше пока демонстрационный; управление воспроизведением и синхронизация библиотеки ещё разрабатываются.</span></div></div>
       </section>
     </main>
     <footer className="player">
       <div className="now-playing"><div className="cover violet"><Disc3 size={20}/></div><div><strong>Ничего не играет</strong><small>Подключение Spotify ещё не настроено</small></div><button className="icon-btn"><Heart size={17}/></button></div>
-      <div className="transport"><div className="controls"><button className="icon-btn"><Shuffle size={17}/></button><button className="icon-btn"><SkipBack size={19}/></button><button className="play-btn" onClick={() => setPlaying(!playing)}>{playing ? <Pause size={19}/> : <Play size={19} fill="currentColor"/>}</button><button className="icon-btn"><SkipForward size={19}/></button><button className="icon-btn"><Repeat2 size={17}/></button></div><div className="progress"><span>0:00</span><div className="progress-line"><i/></div><span>0:00</span></div></div>
+      <div className="transport"><div className="controls"><button className="icon-btn"><Shuffle size={17}/></button><button className="icon-btn"><SkipBack size={19}/></button><button className="play-btn" title="Управление воспроизведением появится после интеграции плеера" disabled><Play size={19} fill="currentColor"/></button><button className="icon-btn"><SkipForward size={19}/></button><button className="icon-btn"><Repeat2 size={17}/></button></div><div className="progress"><span>0:00</span><div className="progress-line"><i/></div><span>0:00</span></div></div>
       <div className="player-extra"><button className="icon-btn"><MonitorSpeaker size={17}/></button><button className="icon-btn"><Volume2 size={18}/></button><div className="volume-line"><i/></div><button className="icon-btn"><MoreHorizontal size={19}/></button></div>
     </footer>
   </div>;
