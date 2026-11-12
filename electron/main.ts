@@ -1,126 +1,69 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
+import fs from "node:fs";
+import { spawn, ChildProcess } from "node:child_process";
+import { SpotifyCdp } from "./cdp";
 
 const isDev = !app.isPackaged;
-let spotifyWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindow | null = null;
+let spotify: SpotifyCdp | null = null;
+let launchPromise: Promise<void> | null = null;
 
-const spotifyAuthHosts = new Set([
-  "open.spotify.com",
-  "accounts.spotify.com",
-  "spotify.com",
-  "accounts.google.com",
-  "appleid.apple.com",
-  "www.facebook.com",
-  "login.live.com",
-  "login.microsoftonline.com"
-]);
-
-function isSpotifyOrAuthUrl(rawUrl: string) {
-  try {
-    const url = new URL(rawUrl);
-    return url.protocol === "https:" &&
-      [...spotifyAuthHosts].some(host => url.hostname === host || url.hostname.endsWith("." + host));
-  } catch {
-    return false;
-  }
+function send(channel: string, payload: unknown) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
 }
-
-function createSpotifyWindow() {
-  if (spotifyWindow && !spotifyWindow.isDestroyed()) {
-    spotifyWindow.focus();
-    return;
-  }
-
-  spotifyWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 900,
-    minHeight: 600,
-    title: "Spotify — Orpheon Windows",
-    backgroundColor: "#121212",
-    autoHideMenuBar: true,
-    webPreferences: {
-      partition: "persist:orpheon-spotify",
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
-  });
-
-  // Spotify officially supports mainstream desktop browsers, not Electron's
-  // product-specific user-agent token. Keep Chromium's real version but omit
-  // the Electron marker so the page follows its normal Chrome code path.
-  const chromiumUserAgent = spotifyWindow.webContents.getUserAgent()
-    .replace(" Electron/" + process.versions.electron, "");
-  spotifyWindow.webContents.setUserAgent(chromiumUserAgent);
-
-  // OAuth providers open separate HTTPS windows during sign-in. Keep known
-  // identity-provider flows inside this persistent Spotify session.
-  spotifyWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isSpotifyOrAuthUrl(url)) return { action: "allow" };
-    if (url.startsWith("https://")) void shell.openExternal(url);
-    return { action: "deny" };
-  });
-
-  spotifyWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    if (isMainFrame) {
-      console.error("[Spotify] Page load failed:", errorCode, errorDescription, validatedURL);
-    }
-  });
-
-  spotifyWindow.webContents.on("render-process-gone", (_event, details) => {
-    console.error("[Spotify] Renderer process exited:", details.reason, details.exitCode);
-  });
-
-  spotifyWindow.on("closed", () => {
-    spotifyWindow = null;
-  });
-
-  void spotifyWindow.loadURL("https://open.spotify.com/");
+function browserCandidates(): string[] {
+  if (process.platform !== "win32") return ["google-chrome", "chromium", "microsoft-edge"];
+  const roots = [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"], process.env.LOCALAPPDATA].filter(Boolean) as string[];
+  return roots.flatMap(root => [path.join(root, "Microsoft", "Edge", "Application", "msedge.exe"), path.join(root, "Google", "Chrome", "Application", "chrome.exe")]);
 }
-
+function findBrowser(): string { return browserCandidates().find(p => fs.existsSync(p)) || (process.platform === "win32" ? "" : "google-chrome"); }
+async function waitForCdp(timeoutMs = 30000) {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    try { const r = await fetch("http://127.0.0.1:9222/json/version"); if (r.ok) return; } catch { /* starting */ }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new Error("Не удалось запустить Chrome/Edge с удалённой отладкой. Попробуйте закрыть браузер и повторить.");
+}
+async function launchSpotifyBrowser() {
+  if (launchPromise) return launchPromise;
+  launchPromise = (async () => {
+    const executable = findBrowser();
+    if (!executable) throw new Error("Не найден Microsoft Edge или Google Chrome. Установите один из браузеров.");
+    const profile = path.join(app.getPath("userData"), "spotify-browser-profile");
+    fs.mkdirSync(profile, { recursive: true });
+    let alreadyRunning = false;
+    try { const r = await fetch("http://127.0.0.1:9222/json/version"); alreadyRunning = r.ok; } catch { /* launch below */ }
+    if (!alreadyRunning) {
+      const child: ChildProcess = spawn(executable, ["--remote-debugging-port=9222", `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "https://open.spotify.com/"], { detached: false, stdio: "ignore", windowsHide: false });
+      child.on("error", e => send("spotify:status", { connected: false, message: e.message }));
+    }
+    await waitForCdp();
+    if (!spotify) {
+      const bridgePath = path.join(app.getAppPath(), "electron", "player-bridge.js");
+      spotify = new SpotifyCdp(fs.readFileSync(bridgePath, "utf8"));
+      spotify.on("status", status => send("spotify:status", status));
+      spotify.on("bridge", message => {
+        if (message.type === "state") send("spotify:state", message.state);
+        else if (message.type === "queue") send("spotify:queue", message.queue);
+        else if (message.type === "ready") send("spotify:status", { connected: true, ready: true, message: "Плеер Spotify готов" });
+        else if (message.type === "error") send("spotify:status", { connected: true, ready: false, message: message.error });
+      });
+    }
+    await spotify.connect();
+    send("spotify:status", { connected: true, ready: false, message: "Ожидаю загрузки плеера Spotify…" });
+  })().catch(error => { launchPromise = null; throw error; });
+  return launchPromise;
+}
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 980,
-    minHeight: 640,
-    backgroundColor: "#090a0c",
-    title: "Orpheon Windows",
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
-  });
-
-  if (isDev) {
-    void win.loadURL("http://localhost:5173");
-    win.webContents.openDevTools({ mode: "detach" });
-  } else {
-    void win.loadFile(path.join(__dirname, "../dist/index.html"));
-  }
-
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("https://")) void shell.openExternal(url);
-    return { action: "deny" };
-  });
+  mainWindow = new BrowserWindow({ width: 1440, height: 900, minWidth: 980, minHeight: 640, backgroundColor: "#090a0c", title: "Orpheon Windows", autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  if (isDev) void mainWindow.loadURL("http://localhost:5173"); else void mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => { if (url.startsWith("https://")) void shell.openExternal(url); return { action: "deny" }; });
+  mainWindow.on("closed", () => { mainWindow = null; });
 }
-
-ipcMain.handle("spotify:open", () => {
-  createSpotifyWindow();
-  return { opened: true };
-});
-
-app.whenReady().then(() => {
-  createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
+ipcMain.handle("spotify:launch", async () => { await launchSpotifyBrowser(); return { opened: true }; });
+ipcMain.handle("spotify:command", async (_event, method: string, args?: Record<string, unknown>) => { if (!spotify) throw new Error("Сначала подключите Spotify"); return spotify.call(method, args || {}); });
+app.whenReady().then(() => { createWindow(); app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); }); });
+app.on("before-quit", () => { void spotify?.close(); });
+app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
