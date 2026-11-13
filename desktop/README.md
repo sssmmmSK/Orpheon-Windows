@@ -15,7 +15,7 @@ This branch starts a GPL-3.0 Windows desktop port of the original MySpoti/Orpheo
 
 1. Keep the original GPL-3.0 Kotlin API and Spotify implementation; do not reimplement Spotify endpoints in JavaScript.
 2. Add a Windows/Linux JVM desktop host based on Compose Multiplatform.
-3. Reuse `:api`, `:api-spotify`, `:engine` where platform-neutral, and `:host-cdp`; add a production CDP host lifecycle (launch Chrome with a dedicated profile, attach, inject the upstream bridge, recover from browser restarts, close cleanly).
+3. Reuse `:api`, `:api-spotify`, `:engine` where platform-neutral, and `:host-cdp`; add a production CDP host lifecycle (launch Chrome or Microsoft Edge with a dedicated profile, attach, inject the upstream bridge, recover from browser restarts, close cleanly).
 4. Port the MySpoti Compose screens into a desktop source set incrementally. Android-only services are replaced by desktop equivalents; the visual language and navigation should remain recognizably MySpoti.
 5. Package a Windows x64 installer. Chrome is an internal playback runtime: after Spotify sign-in, its window should be hidden/minimized and the user should operate the music from the desktop UI. No browser page should cover the app.
 6. Keep GPL-3.0 notices and publish the complete corresponding source with every distributed build.
