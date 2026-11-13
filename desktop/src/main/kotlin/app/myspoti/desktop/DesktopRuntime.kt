@@ -55,13 +55,13 @@ class DesktopRuntime : AutoCloseable {
         if (mutableState.value !is ConnectionState.Disconnected && mutableState.value !is ConnectionState.Error) return
         try {
             mutableState.value = ConnectionState.StartingBrowser
-            val chromeExe = findChrome() ?: error("Google Chrome не найден. Установите Chrome и повторите подключение.")
+            val browserExe = findBrowser() ?: error("Не найден Microsoft Edge или Google Chrome. Установите один из этих браузеров и повторите подключение.")
             val profile = profileDirectory()
             val port = ServerSocket(0).use { it.localPort }
             debuggingPort = port
             chrome = withContext(Dispatchers.IO) {
                 ProcessBuilder(
-                    chromeExe.absolutePath,
+                    browserExe.absolutePath,
                     "--remote-debugging-port=$port",
                     "--remote-allow-origins=*",
                     "--user-data-dir=${profile.toAbsolutePath()}",
@@ -169,13 +169,19 @@ class DesktopRuntime : AutoCloseable {
         }.getOrDefault(false)
     }
 
-    private fun findChrome(): File? {
+    private fun findBrowser(): File? {
+        // Prefer Chrome when installed; Windows 10/11 also ships with Edge.
         val candidates = listOfNotNull(
             System.getenv("PROGRAMFILES")?.let { File(it, "Google/Chrome/Application/chrome.exe") },
             System.getenv("PROGRAMFILES(X86)")?.let { File(it, "Google/Chrome/Application/chrome.exe") },
             System.getenv("LOCALAPPDATA")?.let { File(it, "Google/Chrome/Application/chrome.exe") },
+            System.getenv("PROGRAMFILES")?.let { File(it, "Microsoft/Edge/Application/msedge.exe") },
+            System.getenv("PROGRAMFILES(X86)")?.let { File(it, "Microsoft/Edge/Application/msedge.exe") },
+            System.getenv("LOCALAPPDATA")?.let { File(it, "Microsoft/Edge/Application/msedge.exe") },
             File("C:/Program Files/Google/Chrome/Application/chrome.exe"),
-            File("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe")
+            File("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"),
+            File("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
+            File("C:/Program Files/Microsoft/Edge/Application/msedge.exe")
         )
         return candidates.firstOrNull { it.isFile }
     }
