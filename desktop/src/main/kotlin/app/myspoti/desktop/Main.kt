@@ -59,7 +59,7 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
 
     val status = when (connection) {
         ConnectionState.Disconnected -> "Spotify не подключён"
-        ConnectionState.StartingBrowser -> "Запуск Chrome…"
+        ConnectionState.StartingBrowser -> "Запуск браузера…"
         ConnectionState.Connecting -> "Подключение к Spotify…"
         ConnectionState.WaitingForSpotify -> "Войдите в Spotify в окне Chrome, затем нажмите «Проверить вход»."
         ConnectionState.Connected -> "Spotify подключён"
