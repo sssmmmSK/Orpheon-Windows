@@ -61,7 +61,7 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
         ConnectionState.Disconnected -> "Spotify не подключён"
         ConnectionState.StartingBrowser -> "Запуск браузера…"
         ConnectionState.Connecting -> "Подключение к Spotify…"
-        ConnectionState.WaitingForSpotify -> "Войдите в Spotify в окне Chrome, затем нажмите «Проверить вход»."
+        ConnectionState.WaitingForSpotify -> "Войдите в Spotify в открывшемся окне браузера, затем нажмите «Проверить вход»."
         ConnectionState.Connected -> "Spotify подключён"
         is ConnectionState.Error -> "Ошибка: " + (connection as ConnectionState.Error).message
     }
