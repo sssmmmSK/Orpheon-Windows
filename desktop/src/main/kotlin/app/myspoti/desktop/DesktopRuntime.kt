@@ -74,8 +74,15 @@ class DesktopRuntime : AutoCloseable {
                 ).redirectErrorStream(true).start()
             }
 
+            val browserProcess = chrome ?: error("Не удалось запустить браузер")
             withTimeout(30_000) {
-                while (!chrome!!.isAlive || !cdpAvailable(port)) delay(250)
+                while (true) {
+                    if (!browserProcess.isAlive) {
+                        error("Браузер завершился до запуска DevTools (код выхода ${browserProcess.exitValue()})")
+                    }
+                    if (cdpAvailable(port)) break
+                    delay(250)
+                }
             }
 
             mutableState.value = ConnectionState.Connecting
