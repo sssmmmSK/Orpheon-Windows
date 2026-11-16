@@ -63,7 +63,8 @@ class DesktopRuntime : AutoCloseable {
                 ProcessBuilder(
                     browserExe.absolutePath,
                     "--remote-debugging-port=$port",
-                    "--remote-allow-origins=*",
+                    // Keep the unauthenticated DevTools endpoint loopback-only; do not allow every web origin.
+                    "--remote-debugging-address=127.0.0.1",
                     "--user-data-dir=${profile.toAbsolutePath()}",
                     "--no-first-run",
                     "--no-default-browser-check",
