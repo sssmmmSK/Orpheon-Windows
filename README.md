@@ -22,7 +22,7 @@ GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Buil
 
 A successful CI package build confirms compilation and installer packaging only. It does **not** prove that Spotify sign-in, DRM/Widevine playback, or playback on a user's Windows PC works. Those still require an end-to-end test with the user's browser, network and Spotify account. Spotify Free compatibility is a test target, not a verified guarantee.
 
-The app does not ask for or store the user's Spotify password. Authentication is performed on Spotify's official page in the dedicated browser profile. The bridge does not bypass DRM or remove/skip Spotify advertisements. Spotify may change its private Web Player interfaces and break compatibility; use remains subject to Spotify's terms.
+The app does not ask for or store the user's Spotify password. Authentication is performed on Spotify's official page in the dedicated browser profile. The Windows wrapper does not add a DRM bypass; protected playback is delegated to the official browser runtime, and Widevine playback remains unverified. The port reuses upstream Orpheon behavior, so compatibility and service behavior can change with upstream or Spotify updates. Use remains subject to Spotify's terms.
 
 ## First launch
 
