@@ -71,7 +71,9 @@ class DesktopRuntime : AutoCloseable {
                     "--disable-session-crashed-bubble",
                     "--new-window",
                     "https://open.spotify.com/"
-                ).redirectErrorStream(true).start()
+                ).redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start()
             }
 
             val browserProcess = chrome ?: error("Не удалось запустить браузер")
