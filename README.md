@@ -1,57 +1,47 @@
 # Orpheon Windows
 
-A Windows desktop companion for the official Spotify Web Player, using the desktop CDP host architecture from [Orpheon (formerly MySpoti)](https://github.com/kota-zo/Orpheon).
+A native Windows desktop companion for the official Spotify Web Player, built on the desktop CDP host architecture from [Orpheon (formerly MySpoti)](https://github.com/kota-zo/Orpheon).
 
-## Current status
+## Current Windows port
 
-**0.2.1 — CDP integration and startup diagnostics.** The Windows installer and end-to-end Spotify controls for this revision still need to pass the automated build and a real Windows test. The demo track list has been removed. The app can launch Microsoft Edge or Google Chrome with a dedicated Orpheon browser profile, attach through Chrome DevTools Protocol, inject the upstream Orpheon player bridge, receive player state, and send basic playback commands from the native UI.
+The active Compose Desktop port is developed on the `myspoti-windows-port` branch. The default `main` branch still contains the earlier Electron prototype.
 
-The Spotify login and DRM-protected playback still need to be verified on a real Windows machine. Spotify may change its internal Web Player services, which can break the bridge. This build does not use Spotify Web Playback SDK or Spotify Web API playback endpoints, so it is designed to work with a free Spotify account. It does not remove or skip Spotify advertisements.
+The current port can launch Microsoft Edge or Google Chrome with a dedicated Orpheon browser profile, attach through Chrome DevTools Protocol (CDP), inject the upstream Orpheon Spotify bridge, receive player state, and send basic commands from its native UI.
+
+The UI currently wires:
+- Spotify Web Player sign-in through the official `open.spotify.com` page
+- Track search
+- Add a track to Liked Songs
+- Play a selected track, pause/resume, next and previous
+
+**This is an early Windows port, not a complete MySpoti feature port.** The separate Edge/Chrome window remains visible and must stay open during playback. The full library view, playlists, queue management, seeking, shuffle/repeat and volume controls are not yet implemented in the Windows UI.
+
+## Build and verification status
+
+GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #26](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/43837737634). The [Build #26 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/43837737634/artifacts/14212041856) contains the CI-produced installers and is retained until 30 November 2026.
+
+A successful CI package build confirms compilation and installer packaging only. It does **not** prove that Spotify sign-in, DRM/Widevine playback, or playback on a user's Windows PC works. Those still require an end-to-end test with the user's browser, network and Spotify account. Spotify Free compatibility is a test target, not a verified guarantee.
+
+The app does not ask for or store the user's Spotify password. Authentication is performed on Spotify's official page in the dedicated browser profile. The bridge does not bypass DRM or remove/skip Spotify advertisements. Spotify may change its private Web Player interfaces and break compatibility; use remains subject to Spotify's terms.
 
 ## First launch
 
-1. Install and open Orpheon Windows.
+1. Install and open MySpoti Windows.
 2. Press **Подключить Spotify**.
-3. A separate Edge or Chrome window opens with a dedicated Orpheon profile.
+3. A separate Edge or Chrome window opens with the dedicated MySpoti profile.
 4. Sign in on the official `open.spotify.com` page.
-5. Wait for the app status to say **Плеер Spotify готов**.
-6. Use the controls in Orpheon Windows. The browser window must remain open.
+5. Return to the desktop app and press **Проверить вход** if prompted.
+6. Keep the browser window open while using the desktop controls.
 
-The dedicated browser profile keeps the Spotify session separate from your normal browser profile. The app does not ask for or store your Spotify password.
-
-## Requirements
-
-- Windows 10/11 x64
-- Microsoft Edge or Google Chrome
-- Internet access to Spotify (regional availability and VPN configuration remain the user's responsibility)
+Requirements: Windows 10/11 x64, Microsoft Edge or Google Chrome, and network access to Spotify. VPN routing and regional availability depend on the user's own setup.
 
 ## Development
 
-Requirements: Node.js 22 and npm.
+The Compose Desktop port uses JDK 17 and Gradle. The CI workflow checks out the upstream Orpheon source at a pinned commit and builds both Windows package formats on a Windows runner:
 
-```bash
-npm install
-npm run dev
-```
+- Workflow: [windows-desktop.yml](.github/workflows/windows-desktop.yml)
+- Desktop port notes and milestones: [desktop/README.md](desktop/README.md)
 
-Build the Windows installer:
+## Upstream licensing
 
-```bash
-npm run typecheck
-npm run build
-```
-
-The installer is written to `release/`.
-
-## Architecture and upstream licensing
-
-The desktop host uses Chrome DevTools Protocol to communicate with the official desktop browser Web Player. The player bridge is derived from:
-
-- Project: [kota-zo/Orpheon](https://github.com/kota-zo/Orpheon)
-- Upstream file: `base/api-spotify/src/main/resources/bridge/player-bridge.js`
-- Copyright: Orpheon contributors
-- License: GNU General Public License v3.0 (see [LICENSE](./LICENSE))
-
-The upstream bridge is included in `electron/player-bridge.js` with its original header retained. This project and its combined distribution are licensed under GPL-3.0-only.
-
-This project is not affiliated with or endorsed by Spotify AB. Spotify is a trademark of Spotify AB. Use of Spotify services remains subject to Spotify's terms. Ads are not blocked.
+The port reuses Kotlin/JVM modules and the Spotify bridge from [kota-zo/Orpheon](https://github.com/kota-zo/Orpheon), licensed under GPL-3.0. See [LICENSE](./LICENSE). The project is not affiliated with or endorsed by Spotify AB; Spotify is a trademark of Spotify AB.
