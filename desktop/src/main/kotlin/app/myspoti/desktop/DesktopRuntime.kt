@@ -2,6 +2,7 @@ package app.myspoti.desktop
 
 import app.myspoti.host.cdp.CdpHost
 import app.myspoti.api.PlayerState
+import app.myspoti.api.Page
 import app.myspoti.api.Track
 import app.myspoti.spotify.SpotifyApi
 import kotlinx.coroutines.CoroutineScope
@@ -134,6 +135,12 @@ class DesktopRuntime : AutoCloseable {
     suspend fun searchTracks(query: String): List<Track> {
         if (query.isBlank()) return emptyList()
         return spotify?.search?.tracks(query.trim(), limit = 25)?.items.orEmpty()
+    }
+
+    suspend fun likedTracks(offset: Int = 0, limit: Int = 50): Page<Track> {
+        val api = spotify ?: error("Сначала подключите Spotify")
+        val page = api.library.likedTracks(offset, limit)
+        return Page(page.items.map { it.track }, page.offset, page.total, page.nextOffset)
     }
 
     suspend fun playTrack(track: Track) {
