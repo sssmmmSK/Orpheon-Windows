@@ -1,6 +1,7 @@
 package app.myspoti.desktop
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,9 +54,32 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
     val connection by runtime.state.collectAsState()
     val player by runtime.playerState.collectAsState()
     val scope = rememberCoroutineScope()
+    var section by remember { mutableStateOf("search") }
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<Track>>(emptyList()) }
     var searchMessage by remember { mutableStateOf("") }
+    var likedTracks by remember { mutableStateOf<List<Track>>(emptyList()) }
+    var likedNextOffset by remember { mutableStateOf<Int?>(null) }
+    var likedTotal by remember { mutableStateOf(0) }
+    var libraryMessage by remember { mutableStateOf("") }
+    var libraryLoading by remember { mutableStateOf(false) }
+
+    fun loadLikedTracks(reset: Boolean) {
+        if (libraryLoading) return
+        val offset = if (reset) 0 else likedNextOffset ?: return
+        libraryLoading = true
+        scope.launch {
+            runCatching { runtime.likedTracks(offset, 50) }
+                .onSuccess { page ->
+                    likedTracks = if (reset) page.items else likedTracks + page.items
+                    likedNextOffset = page.nextOffset
+                    likedTotal = page.total
+                    libraryMessage = ""
+                }
+                .onFailure { libraryMessage = it.message ?: "Не удалось загрузить медиатеку" }
+            libraryLoading = false
+        }
+    }
 
     val status = when (connection) {
         ConnectionState.Disconnected -> "Spotify не подключён"
@@ -83,9 +107,22 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
                     Text("WINDOWS", color = Muted, style = MaterialTheme.typography.labelSmall)
                 }
             }
-            Text("Главная", color = Color.White, style = MaterialTheme.typography.bodyLarge)
-            Text("Поиск", color = Muted, style = MaterialTheme.typography.bodyLarge)
-            Text("Медиатека", color = Muted, style = MaterialTheme.typography.bodyLarge)
+            Text("Главная", color = Muted, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                "Поиск",
+                color = if (section == "search") Color.White else Muted,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.clickable { section = "search" },
+            )
+            Text(
+                "Медиатека",
+                color = if (section == "library") Color.White else Muted,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.clickable {
+                    section = "library"
+                    if (likedTracks.isEmpty() && !libraryLoading) loadLikedTracks(reset = true)
+                },
+            )
             Spacer(Modifier.weight(1f))
             Text("СОСТОЯНИЕ", color = Muted, style = MaterialTheme.typography.labelSmall)
             Text(status, color = if (connection == ConnectionState.Connected) Accent else Muted, style = MaterialTheme.typography.bodySmall)
@@ -104,39 +141,61 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
             modifier = Modifier.weight(1f).fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Surface(modifier = Modifier.fillMaxWidth(), color = Panel, shape = RoundedCornerShape(16.dp)) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        label = { Text("Поиск музыки и исполнителей") },
-                    )
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                runCatching { runtime.searchTracks(query) }
-                                    .onSuccess { results = it; searchMessage = if (it.isEmpty()) "Ничего не найдено" else "" }
-                                    .onFailure { searchMessage = it.message ?: "Ошибка поиска" }
-                            }
-                        },
-                        enabled = connection == ConnectionState.Connected && query.isNotBlank(),
-                    ) { Text("Найти") }
+            if (section == "search") {
+                Surface(modifier = Modifier.fillMaxWidth(), color = Panel, shape = RoundedCornerShape(16.dp)) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            label = { Text("Поиск музыки и исполнителей") },
+                        )
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    runCatching { runtime.searchTracks(query) }
+                                        .onSuccess { results = it; searchMessage = if (it.isEmpty()) "Ничего не найдено" else "" }
+                                        .onFailure { searchMessage = it.message ?: "Ошибка поиска" }
+                                }
+                            },
+                            enabled = connection == ConnectionState.Connected && query.isNotBlank(),
+                        ) { Text("Найти") }
+                    }
                 }
             }
             Box(
                 modifier = Modifier.weight(1f).fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).padding(20.dp),
             ) {
                 Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Результаты поиска", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                    if (searchMessage.isNotBlank()) Text(searchMessage, color = Muted)
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(results, key = { it.uri }) { track ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text(
+                                if (section == "library") "Любимые треки" else "Результаты поиска",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                            if (section == "library") Text("$likedTotal треков в Spotify", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        if (section == "library") {
+                            OutlinedButton(enabled = !libraryLoading, onClick = { loadLikedTracks(reset = true) }) {
+                                Text(if (libraryLoading) "Загрузка…" else "Обновить")
+                            }
+                        }
+                    }
+                    val visibleTracks = if (section == "library") likedTracks else results
+                    val message = if (section == "library") libraryMessage else searchMessage
+                    if (message.isNotBlank()) Text(message, color = Muted)
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(visibleTracks, key = { it.uri }) { track ->
                             Surface(color = Color(0xFF191C22), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -147,30 +206,44 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
                                         Text(track.name, color = Color.White, maxLines = 1)
                                         Text(track.artists.joinToString { it.name }, color = Muted, maxLines = 1)
                                     }
-                                    OutlinedButton(
-                                        onClick = {
-                                            scope.launch {
-                                                runCatching { runtime.saveTrack(track) }
-                                                    .onFailure { searchMessage = it.message ?: "Не удалось добавить в любимые" }
-                                            }
-                                        },
-                                    ) { Text("♡") }
+                                    if (section == "search") {
+                                        OutlinedButton(
+                                            onClick = {
+                                                scope.launch {
+                                                    runCatching { runtime.saveTrack(track) }
+                                                        .onFailure { searchMessage = it.message ?: "Не удалось добавить в любимые" }
+                                                }
+                                            },
+                                        ) { Text("♡") }
+                                    }
                                     Button(
                                         onClick = {
                                             scope.launch {
                                                 runCatching { runtime.playTrack(track) }
-                                                    .onFailure { searchMessage = it.message ?: "Не удалось запустить" }
+                                                    .onFailure {
+                                                        if (section == "library") libraryMessage = it.message ?: "Не удалось запустить"
+                                                        else searchMessage = it.message ?: "Не удалось запустить"
+                                                    }
                                             }
                                         },
                                     ) { Text("▶") }
                                 }
                             }
                         }
+                        if (section == "library" && likedNextOffset != null) {
+                            item {
+                                OutlinedButton(
+                                    enabled = !libraryLoading,
+                                    onClick = { loadLikedTracks(reset = false) },
+                                ) { Text(if (libraryLoading) "Загрузка…" else "Загрузить ещё") }
+                            }
+                        }
                     }
-                    if (results.isEmpty() && searchMessage.isBlank()) {
-                        Spacer(Modifier.weight(1f))
-                        Text("Подключите Spotify и выполните поиск.", color = Muted)
-                        Spacer(Modifier.weight(1f))
+                    if (visibleTracks.isEmpty() && !libraryLoading && message.isBlank()) {
+                        Text(
+                            if (section == "library") "Любимые треки пока не загружены или список пуст." else "Подключите Spotify и выполните поиск.",
+                            color = Muted,
+                        )
                     }
                 }
             }
