@@ -2,7 +2,7 @@
 
 This branch is an early GPL-3.0 Windows desktop port of the original MySpoti/Orpheon codebase. It now produces Windows x64 EXE and MSI installers in GitHub Actions. A successful package build confirms that the app can be compiled and packaged; it does **not** prove end-to-end Spotify sign-in, DRM playback, or reliable operation on a user's PC.
 
-The current Compose Desktop UI is a minimal working shell, not a complete port of the Android MySpoti interface. The app launches Microsoft Edge or Google Chrome with a dedicated profile. That browser window remains visible during sign-in and playback; hiding it or embedding the playback surface is not implemented yet.
+The current Compose Desktop UI is an early port, not a complete copy of the Android MySpoti interface. It now has track search, a paged Liked Songs view (50 tracks per page), save-to-liked and basic playback controls. The app launches Microsoft Edge or Google Chrome with a dedicated profile. That browser window remains visible during sign-in and playback; hiding it or embedding the playback surface is not implemented yet. The complete library (playlists, albums, artists and folders), queue management, seeking, shuffle/repeat and volume controls remain unfinished.
 
 ## Grounded upstream architecture
 
