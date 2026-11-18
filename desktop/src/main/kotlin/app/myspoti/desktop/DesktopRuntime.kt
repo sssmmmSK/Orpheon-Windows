@@ -138,7 +138,7 @@ class DesktopRuntime : AutoCloseable {
 
     suspend fun playTrack(track: Track) {
         val api = spotify ?: error("Сначала подключите Spotify")
-        api.player.play(track.uri, track.uri)
+        api.player.play(track.uri)
     }
 
     suspend fun togglePlayback() {
