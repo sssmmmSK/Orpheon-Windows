@@ -16,23 +16,26 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Check out Windows port
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Check out original MySpoti modules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: kota-zo/Orpheon
           ref: 70f323c5e5c3c21305b3177eb681e84ba02ce872
           path: upstream
+          persist-credentials: false
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "9.8.2"
 
@@ -41,7 +44,7 @@ jobs:
         run: gradle --no-daemon packageExe packageMsi
 
       - name: Upload Windows installers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: MySpoti-Windows-preview
           path: |
