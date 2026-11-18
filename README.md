@@ -11,10 +11,11 @@ The current port can launch Microsoft Edge or Google Chrome with a dedicated Orp
 The UI currently wires:
 - Spotify Web Player sign-in through the official `open.spotify.com` page
 - Track search
+- A paged Liked Songs view (50 tracks per page)
 - Add a track to Liked Songs
 - Play a selected track, pause/resume, next and previous
 
-**This is an early Windows port, not a complete MySpoti feature port.** The separate Edge/Chrome window remains visible and must stay open during playback. The full library view, playlists, queue management, seeking, shuffle/repeat and volume controls are not yet implemented in the Windows UI.
+**This is an early Windows port, not a complete MySpoti feature port.** The separate Edge/Chrome window remains visible and must stay open during playback. The complete Your Library experience (playlists, albums, artists and folders), queue management, seeking, shuffle/repeat and volume controls are not yet implemented in the Windows UI.
 
 ## Build and verification status
 
