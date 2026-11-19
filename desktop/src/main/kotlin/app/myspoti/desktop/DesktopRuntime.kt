@@ -125,6 +125,9 @@ class DesktopRuntime : AutoCloseable {
             mutableState.value = if (signedIn) ConnectionState.Connected else ConnectionState.WaitingForSpotify
             signedIn
         } catch (t: Throwable) {
+            // A failed CDP/auth check must not leave the browser and host alive while
+            // the UI enables another connection attempt.
+            disconnectInternal()
             mutableState.value = ConnectionState.Error(t.message ?: "Не удалось проверить авторизацию")
             false
         }
