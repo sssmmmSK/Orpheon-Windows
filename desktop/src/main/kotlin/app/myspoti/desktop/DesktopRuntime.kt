@@ -7,6 +7,7 @@ import app.myspoti.api.Track
 import app.myspoti.spotify.SpotifyApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.async
@@ -51,6 +52,7 @@ class DesktopRuntime : AutoCloseable {
     @Volatile private var host: CdpHost? = null
     @Volatile private var spotify: SpotifyApi? = null
     @Volatile private var debuggingPort: Int = -1
+    @Volatile private var playerStateJob: Job? = null
 
     suspend fun connect() {
         if (mutableState.value !is ConnectionState.Disconnected && mutableState.value !is ConnectionState.Error) return
@@ -93,7 +95,7 @@ class DesktopRuntime : AutoCloseable {
             host = cdp
             val api = SpotifyApi(cdp, scope)
             spotify = api
-            scope.launch { api.player.state.collect { mutablePlayerState.value = it } }
+            playerStateJob = scope.launch { api.player.state.collect { mutablePlayerState.value = it } }
 
             // Force a deterministic page-load event after the CDP listeners are installed.
             coroutineScope {
@@ -169,6 +171,8 @@ class DesktopRuntime : AutoCloseable {
     }
 
     private fun disconnectInternal() {
+        playerStateJob?.cancel()
+        playerStateJob = null
         runCatching { host?.close() }
         host = null
         spotify = null
