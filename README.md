@@ -11,6 +11,7 @@ The current port can launch Microsoft Edge or Google Chrome with a dedicated Orp
 The UI currently wires:
 - Spotify Web Player sign-in through the official `open.spotify.com` page
 - Track search
+- A paged Liked Songs view (50 tracks per page)
 - Add a track to Liked Songs
 - Play a selected track, pause/resume, next and previous
 
@@ -18,7 +19,7 @@ The UI currently wires:
 
 ## Build and verification status
 
-GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #26](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/43837737634). The [Build #26 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/43837737634/artifacts/14212041856) contains the CI-produced installers and is retained until 30 November 2026.
+GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #34](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44490658151). The [Build #34 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44490658151/artifacts/14513335706) contains the CI-produced installers and is retained until 3 December 2026.
 
 A successful CI package build confirms compilation and installer packaging only. It does **not** prove that Spotify sign-in, DRM/Widevine playback, or playback on a user's Windows PC works. Those still require an end-to-end test with the user's browser, network and Spotify account. Spotify Free compatibility is a test target, not a verified guarantee.
 
