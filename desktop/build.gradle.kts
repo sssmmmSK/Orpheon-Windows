@@ -16,8 +16,8 @@ kotlin {
 
 dependencies {
     implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
-    implementation(compose.materialIconsExtended)
+    // Use the explicit catalog coordinate instead of the deprecated Compose DSL accessor.
+    implementation(libs.compose.material3)
 
     // Reuse the real MySpoti Kotlin API and Spotify implementation from upstream.
     implementation(project(":api"))
