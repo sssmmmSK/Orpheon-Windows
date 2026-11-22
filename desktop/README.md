@@ -13,6 +13,10 @@ The current Compose Desktop UI is an early port, not a complete copy of the Andr
 - The production UI is in `:app` and is currently an Android application. It cannot simply be packaged as a Windows EXE.
 - `:host-android`, Android media services, Android Auto, Wear OS and Android-only storage/DRM integrations are not Windows components.
 
+### Pinned upstream snapshot
+
+The Windows workflow deliberately pins upstream to commit `70f323c5e5c3c21305b3177eb681e84ba02ce872` (12 November 2026) for reproducible builds. Upstream `main` has since moved to `773dcc7be06f254ac7e6291f643f1e5a51946f0e` (Orpheon 1.0.0, 17 November 2026). GitHub's compare endpoint reports no common ancestor between these two commits, so this is not a routine fast-forward update. The newer upstream release changes the product and architecture; do not change the pin without checking the required Spotify modules, CDP bridge compatibility, and GPL-3.0 source/attribution obligations.
+
 ## Windows architecture
 
 1. Keep the original GPL-3.0 Kotlin API and Spotify implementation; do not reimplement Spotify endpoints in JavaScript.
