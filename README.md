@@ -19,7 +19,11 @@ The UI currently wires:
 
 ## Build and verification status
 
-GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #34](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44490658151). The [Build #34 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44490658151/artifacts/14513335706) contains the CI-produced installers and is retained until 3 December 2026. The downloaded archive was inspected: it contains `MySpoti-0.1.0.exe` and `MySpoti-0.1.0.msi`; the EXE PE header identifies an x64 (AMD64) binary.
+GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #36](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44886842367). The [Build #36 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44886842367/artifacts/14700785324) was downloaded and inspected: it contains `MySpoti-0.1.0.exe` (72,868,864 bytes) and `MySpoti-0.1.0.msi` (72,201,660 bytes). The EXE PE header identifies an x64 (AMD64) binary, and the MSI template is `x64;1033`. The artifact is retained until 5 December 2026.
+
+SHA-256:
+- EXE: `ae600bd79568435d0b1db1541171e4ef3ee03e2d00ea8889183bb21bc0eee88f`
+- MSI: `1d60f387cd67b30fcbe2192ef1a9b96cfbc8cf644ec8c0bc302efcb922b1c275`
 
 A successful CI package build confirms compilation and installer packaging only. It does **not** prove that Spotify sign-in, DRM/Widevine playback, or playback on a user's Windows PC works. Those still require an end-to-end test with the user's browser, network and Spotify account. Spotify Free compatibility is a test target, not a verified guarantee.
 
