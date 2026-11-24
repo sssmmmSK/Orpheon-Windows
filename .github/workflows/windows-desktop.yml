@@ -4,7 +4,10 @@ on:
   push:
     branches: [myspoti-windows-port]
     paths:
-      - "desktop/**"
+      - "desktop/src/**"
+      - "desktop/build.gradle.kts"
+      - "desktop/settings.gradle.kts"
+      - "desktop/gradle/**"
       - ".github/workflows/windows-desktop.yml"
   workflow_dispatch:
 
