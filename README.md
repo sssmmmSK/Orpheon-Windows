@@ -19,7 +19,7 @@ The UI currently wires:
 
 ## Build and verification status
 
-GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #37](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45004798004). The [Build #36 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44886842367/artifacts/14747811012) was downloaded and inspected: it contains `MySpoti-0.1.0.exe` (72,868,864 bytes) and `MySpoti-0.1.0.msi` (72,201,659 bytes). The EXE PE header identifies an x64 (AMD64) binary, and the MSI template is `x64;1033`. The artifact is retained until 6 December 2026.
+GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #37](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45004798004). The [Build #37 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44886842367/artifacts/14747811012) was downloaded and inspected: it contains `MySpoti-0.1.0.exe` (72,868,864 bytes) and `MySpoti-0.1.0.msi` (72,201,659 bytes). The EXE PE header identifies an x64 (AMD64) binary, and the MSI template is `x64;1033`. The artifact is retained until 6 December 2026.
 
 SHA-256:
 - EXE: `5d38388195e465d954d0a4954f72a59cf2876c2e60c3293330dc9661007a6238`
