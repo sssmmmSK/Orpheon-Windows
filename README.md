@@ -19,11 +19,11 @@ The UI currently wires:
 
 ## Build and verification status
 
-GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #38](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45355332017). The [Build #38 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45355332017/artifacts/14902566480) was downloaded and inspected on 25 November 2026: it contains `MySpoti-0.1.0.exe` (72,868,864 bytes) and `MySpoti-0.1.0.msi` (72,201,658 bytes). The EXE PE header identifies an x64 (AMD64) binary, and the MSI template is `x64;1033`. The artifact is retained until 8 December 2026.
+GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #41](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45785632851). The [Build #41 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45785632851/artifacts/15100588146) was downloaded and inspected on 26 November 2026: it contains `MySpoti-0.1.0.exe` (72,877,056 bytes) and `MySpoti-0.1.0.msi` (72,209,853 bytes). The EXE PE header identifies an x64 (AMD64) binary, and the MSI contains the `x64;1033` template marker. The artifact is retained until 10 December 2026.
 
 SHA-256:
-- EXE: `640865b6b11722977f57c525a0bb5c658cb249436c6662ee90b424eb4f08acd4`
-- MSI: `b775cbcd80b00922c7917113e3a3246b8bdc237b862cc962132ba1d14a3cc988`
+- EXE: `c024bb2e92d42d29e88926789a1ed5dc587446ffd4a8622f324c0baa4878c4f0`
+- MSI: `5442fe39bf3142ead78c1b147e0fe43c554b511883b0fcb33bf0a1baf5eac698`
 
 A successful CI package build confirms compilation and installer packaging only. It does **not** prove that Spotify sign-in, DRM/Widevine playback, or playback on a user's Windows PC works. Those still require an end-to-end test with the user's browser, network and Spotify account. Spotify Free compatibility is a test target, not a verified guarantee.
 
