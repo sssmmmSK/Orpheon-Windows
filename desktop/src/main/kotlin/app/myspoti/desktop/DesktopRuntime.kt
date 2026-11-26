@@ -5,10 +5,12 @@ import app.myspoti.api.PlayerState
 import app.myspoti.api.Page
 import app.myspoti.api.Track
 import app.myspoti.spotify.SpotifyApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -122,6 +124,12 @@ class DesktopRuntime : AutoCloseable {
                 // The user completes the official Spotify login in the Chrome window.
                 mutableState.value = ConnectionState.WaitingForSpotify
             }
+        } catch (t: TimeoutCancellationException) {
+            disconnectInternal()
+            mutableState.value = ConnectionState.Error(t.message ?: "Истекло время ожидания подключения")
+        } catch (t: CancellationException) {
+            disconnectInternal()
+            throw t
         } catch (t: Throwable) {
             disconnectInternal()
             mutableState.value = ConnectionState.Error(t.message ?: t.javaClass.simpleName)
@@ -135,6 +143,13 @@ class DesktopRuntime : AutoCloseable {
             val signedIn = withTimeout(15_000) { api.isSignedIn() }
             mutableState.value = if (signedIn) ConnectionState.Connected else ConnectionState.WaitingForSpotify
             signedIn
+        } catch (t: TimeoutCancellationException) {
+            // A timed-out CDP/auth check must not leave the browser and host alive.
+            disconnectInternal()
+            mutableState.value = ConnectionState.Error(t.message ?: "Истекло время проверки авторизации")
+            false
+        } catch (t: CancellationException) {
+            throw t
         } catch (t: Throwable) {
             // A failed CDP/auth check must not leave the browser and host alive while
             // the UI enables another connection attempt.
