@@ -96,7 +96,7 @@ class DesktopRuntime : AutoCloseable {
                         delay(250)
                     }
                 }
-                readyPort
+                readyPort ?: error("Не удалось определить порт DevTools")
             }
 
             mutableState.value = ConnectionState.Connecting
