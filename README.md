@@ -6,7 +6,7 @@ A native Windows desktop companion for the official Spotify Web Player, built on
 
 The active Compose Desktop port is developed on the `myspoti-windows-port` branch. The default `main` branch still contains the earlier Electron prototype.
 
-The current port can launch Microsoft Edge or Google Chrome with a dedicated Orpheon browser profile, attach through Chrome DevTools Protocol (CDP), inject the upstream Orpheon Spotify bridge, receive player state, and send basic commands from its native UI.
+The current port can launch Microsoft Edge or Google Chrome with a dedicated Orpheon browser profile, attach through Chrome DevTools Protocol (CDP), inject the upstream Orpheon Spotify bridge, receive player state, and send basic commands from its native UI. The upstream Spotify layer talks to the Web Player's page bridge and internal web operations; it is not the public Spotify Web API, so it may need maintenance when Spotify changes its website.
 
 The UI currently wires:
 - Spotify Web Player sign-in through the official `open.spotify.com` page
@@ -19,11 +19,11 @@ The UI currently wires:
 
 ## Build and verification status
 
-GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #36](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44886842367). The [Build #36 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/44886842367/artifacts/14700785324) was downloaded and inspected: it contains `MySpoti-0.1.0.exe` (72,868,864 bytes) and `MySpoti-0.1.0.msi` (72,201,660 bytes). The EXE PE header identifies an x64 (AMD64) binary, and the MSI template is `x64;1033`. The artifact is retained until 5 December 2026.
+GitHub Actions successfully packaged Windows x64 EXE and MSI installers in [Build #38](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45355332017). The [Build #38 artifact](https://github.com/sssmmmSK/Orpheon-Windows/actions/runs/45355332017/artifacts/14902566480) was downloaded and inspected on 25 November 2026: it contains `MySpoti-0.1.0.exe` (72,868,864 bytes) and `MySpoti-0.1.0.msi` (72,201,658 bytes). The EXE PE header identifies an x64 (AMD64) binary, and the MSI template is `x64;1033`. The artifact is retained until 8 December 2026.
 
 SHA-256:
-- EXE: `ae600bd79568435d0b1db1541171e4ef3ee03e2d00ea8889183bb21bc0eee88f`
-- MSI: `1d60f387cd67b30fcbe2192ef1a9b96cfbc8cf644ec8c0bc302efcb922b1c275`
+- EXE: `640865b6b11722977f57c525a0bb5c658cb249436c6662ee90b424eb4f08acd4`
+- MSI: `b775cbcd80b00922c7917113e3a3246b8bdc237b862cc962132ba1d14a3cc988`
 
 A successful CI package build confirms compilation and installer packaging only. It does **not** prove that Spotify sign-in, DRM/Widevine playback, or playback on a user's Windows PC works. Those still require an end-to-end test with the user's browser, network and Spotify account. Spotify Free compatibility is a test target, not a verified guarantee.
 
@@ -44,8 +44,8 @@ Requirements: Windows 10/11 x64, Microsoft Edge or Google Chrome, and network ac
 
 The Compose Desktop port uses JDK 17 and Gradle. The CI workflow checks out the upstream Orpheon source at a pinned commit and builds both Windows package formats on a Windows runner:
 
-- Workflow: [windows-desktop.yml](.github/workflows/windows-desktop.yml)
-- Desktop port notes and milestones: [desktop/README.md](desktop/README.md)
+- Workflow: [windows-desktop.yml](https://github.com/sssmmmSK/Orpheon-Windows/blob/myspoti-windows-port/.github/workflows/windows-desktop.yml)
+- Desktop port notes and milestones: [desktop/README.md](https://github.com/sssmmmSK/Orpheon-Windows/blob/myspoti-windows-port/desktop/README.md)
 
 ## Upstream licensing
 
