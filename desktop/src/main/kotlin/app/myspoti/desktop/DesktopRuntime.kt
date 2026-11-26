@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
-import java.net.ServerSocket
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
@@ -51,7 +50,6 @@ class DesktopRuntime : AutoCloseable {
     @Volatile private var chrome: Process? = null
     @Volatile private var host: CdpHost? = null
     @Volatile private var spotify: SpotifyApi? = null
-    @Volatile private var debuggingPort: Int = -1
     @Volatile private var playerStateJob: Job? = null
 
     suspend fun connect() {
@@ -60,12 +58,15 @@ class DesktopRuntime : AutoCloseable {
             mutableState.value = ConnectionState.StartingBrowser
             val browserExe = findBrowser() ?: error("Не найден Microsoft Edge или Google Chrome. Установите один из этих браузеров и повторите подключение.")
             val profile = profileDirectory()
-            val port = ServerSocket(0).use { it.localPort }
-            debuggingPort = port
+            val portFile = profile.resolve("DevToolsActivePort")
+            // Let Chromium allocate its own ephemeral port. Reserving a port with
+            // ServerSocket(0) and closing it before browser startup leaves a race
+            // in which another local process can claim that port.
+            Files.deleteIfExists(portFile)
             chrome = withContext(Dispatchers.IO) {
                 ProcessBuilder(
                     browserExe.absolutePath,
-                    "--remote-debugging-port=$port",
+                    "--remote-debugging-port=0",
                     // Keep the unauthenticated DevTools endpoint loopback-only; do not allow every web origin.
                     "--remote-debugging-address=127.0.0.1",
                     "--user-data-dir=${profile.toAbsolutePath()}",
@@ -80,14 +81,22 @@ class DesktopRuntime : AutoCloseable {
             }
 
             val browserProcess = chrome ?: error("Не удалось запустить браузер")
-            withTimeout(30_000) {
-                while (true) {
+            val port = withTimeout(30_000) {
+                var readyPort: Int? = null
+                while (readyPort == null) {
                     if (!browserProcess.isAlive) {
                         error("Браузер завершился до запуска DevTools (код выхода ${browserProcess.exitValue()})")
                     }
-                    if (cdpAvailable(port)) break
-                    delay(250)
+                    val candidate = runCatching {
+                        Files.readAllLines(portFile).firstOrNull()?.trim()?.toIntOrNull()
+                    }.getOrNull()
+                    if (candidate != null && candidate in 1..65535 && cdpAvailable(candidate)) {
+                        readyPort = candidate
+                    } else {
+                        delay(250)
+                    }
                 }
+                readyPort
             }
 
             mutableState.value = ConnectionState.Connecting
