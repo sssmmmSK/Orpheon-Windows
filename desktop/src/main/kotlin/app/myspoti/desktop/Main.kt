@@ -65,6 +65,10 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
     var libraryLoading by remember { mutableStateOf(false) }
 
     fun loadLikedTracks(reset: Boolean) {
+        if (connection != ConnectionState.Connected) {
+            libraryMessage = "Сначала подключите Spotify"
+            return
+        }
         if (libraryLoading) return
         val offset = if (reset) 0 else likedNextOffset ?: return
         libraryLoading = true
@@ -183,7 +187,7 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
                         }
                         Spacer(Modifier.weight(1f))
                         if (section == "library") {
-                            OutlinedButton(enabled = !libraryLoading, onClick = { loadLikedTracks(reset = true) }) {
+                            OutlinedButton(enabled = !libraryLoading && connection == ConnectionState.Connected, onClick = { loadLikedTracks(reset = true) }) {
                                 Text(if (libraryLoading) "Загрузка…" else "Обновить")
                             }
                         }
@@ -208,6 +212,7 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
                                     }
                                     if (section == "search") {
                                         OutlinedButton(
+                                            enabled = connection == ConnectionState.Connected,
                                             onClick = {
                                                 scope.launch {
                                                     runCatching { runtime.saveTrack(track) }
@@ -217,6 +222,7 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
                                         ) { Text("♡") }
                                     }
                                     Button(
+                                        enabled = connection == ConnectionState.Connected,
                                         onClick = {
                                             scope.launch {
                                                 runCatching { runtime.playTrack(track) }
@@ -233,7 +239,7 @@ private fun MySpotiDesktopShell(runtime: DesktopRuntime) {
                         if (section == "library" && likedNextOffset != null) {
                             item {
                                 OutlinedButton(
-                                    enabled = !libraryLoading,
+                                    enabled = !libraryLoading && connection == ConnectionState.Connected,
                                     onClick = { loadLikedTracks(reset = false) },
                                 ) { Text(if (libraryLoading) "Загрузка…" else "Загрузить ещё") }
                             }
